@@ -1,0 +1,73 @@
+Metadata-Version: 2.4
+Name: llm-vote-ollama
+Version: 0.1.0
+Summary: Free local majority-vote text classification via Ollama
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.32.3
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: datasets>=2.20.0
+Requires-Dist: pandas>=2.2.2
+Requires-Dist: numpy>=1.26.4
+Requires-Dist: scikit-learn>=1.4.2
+Requires-Dist: tqdm>=4.66.4
+Requires-Dist: tenacity>=8.2.3
+Requires-Dist: matplotlib>=3.8.4
+
+# LLM-Assisted Text Classification via Majority Voting — Free (Ollama) Edition
+
+This repo runs **locally for free** using **Ollama** on macOS/Linux/Windows (no API keys).
+Majority-vote baseline, early stopping, abstention, English + Arabic (LABR).
+
+## 0) Install Ollama and a model
+```bash
+# macOS:
+brew install ollama
+ollama serve &                      # starts http://localhost:11434
+# Pull a small model first (fast, low memory)
+ollama pull llama3.2:3b-instruct
+# Optional: stronger but heavier
+# ollama pull deepseek-r1:7b
+```
+
+## 1) Install Python deps
+```bash
+pip install -e .
+```
+
+## 2) Quick run (free, local)
+```bash
+python -m scripts.eval_dataset --provider ollama --model llama3.2:3b-instruct \
+  --dataset ag_news --k 3 --max-samples 50 --early-stop
+```
+
+## 3) Arabic LABR
+Place a CSV at `data/labr_binary_test.csv` with columns: `text,label`  (labels: `Positive` or `Negative`), then:
+```bash
+python -m scripts.eval_dataset --provider ollama --model llama3.2:3b-instruct \
+  --dataset labr --k 3 --max-samples 200
+```
+
+## 4) Optional (paid): OpenAI
+If you later want to compare against GPT-4/GPT-4o, change `--provider openai` and set your `OPENAI_API_KEY`.
+
+## Notes
+- The prompt forces a single-label output; the voter ignores off-list outputs.
+- Use `--abstain 0.8` for high-precision mode; `--early-stop` to save time at higher K.
+
+
+# 0) Install Ollama + a small model
+brew install ollama
+ollama serve &
+ollama pull llama3.2:3b-instruct
+
+# 1) Install Python deps
+pip install -e .
+
+# 2) Run a free local experiment
+python -m scripts.eval_dataset --provider ollama --model llama3.2:3b-instruct \
+  --dataset ag_news --k 3 --max-samples 50 --early-stop
+
+  ollama pull deepseek-r1:7b
+python -m scripts.eval_dataset --provider ollama --model deepseek-r1:7b \
+  --dataset ag_news --k 3 --max-samples 50

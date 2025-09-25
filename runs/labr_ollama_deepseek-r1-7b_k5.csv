@@ -1,0 +1,3 @@
+id,gold,pred,text,votes,top_votes,K,confidence,correct
+0,Positive,ABSTAIN,هذا فيلم رائع,"{""Positive"": 0, ""Negative"": 0}",0,5,0.0,0
+1,Negative,ABSTAIN,هذا كتاب سيء,"{""Positive"": 0, ""Negative"": 0}",0,5,0.0,0
