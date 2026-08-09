@@ -182,19 +182,6 @@ llm_majority_vote_ollama/
 | Slow runs | Reduce `--max-samples`, lower `k`, or use a smaller model |
 | DeepSeek outputs garbled labels | Confirm `<think>` stripping is active in `ollama_client.py` |
 
----
-
-## Citation
-
-```bibtex
-@article{taha2025mmv,
-  title   = {Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification},
-  author  = {Taha, Akram and Zeyad},
-  journal = {Machine Learning and Knowledge Extraction (MDPI MAKE)},
-  year    = {2025},
-  url     = {https://github.com/Akramtaha98/llm_majority_vote_ollama}
-}
-```
 
 ---
 
