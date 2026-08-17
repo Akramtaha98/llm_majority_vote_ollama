@@ -1,201 +1,251 @@
-LLM-Assisted Text Classification with a Minimal Majority-Vote Algorithm
+# Minimal Majority Vote (MMV)
 
-A simple baseline that works
+### Calibrated zero-shot LLM classification — no training, no logits, no calibration set
 
-This repo is a tiny, practical baseline for text classification with Large Language Models (LLMs).
-You ask the model the same question K times, then pick the most common label (majority vote).
-It works with OpenAI or free local models via Ollama. Datasets: AG News (English), DBpedia (English), GoEmotions (English), and LABR (Arabic sentiment).
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Status](https://img.shields.io/badge/status-research--code-orange)](#)
+[![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black?logo=ollama&logoColor=white)](https://ollama.com)
 
-⸻
+Ask the LLM the same question **k independent times**, take the hard majority label, and use `conf = top_votes / k` as a per-instance uncertainty signal. Abstain when no strict majority is reached. No fine-tuning, no logit access, no held-out calibration data — just repeated zero-shot calls and a vote count.
 
-Why this is useful
-	•	No training: zero-shot classification with prompts only.
-	•	More stable: asking K times reduces random mistakes.
-	•	Free option: run local models (Llama 3.x, DeepSeek) with Ollama.
+This repository is the reference implementation for *Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification*.
 
-⸻
+---
 
-5-Minute Quickstart
+## Contents
 
-1) Install
+- [Key results](#key-results)
+- [Why MMV](#why-mmv)
+- [Quickstart](#quickstart)
+- [How it works](#how-it-works)
+- [Supported datasets](#supported-datasets)
+- [Output format](#output-format)
+- [Reproducing the paper's results](#reproducing-the-papers-results)
+- [Excluded conditions](#excluded-conditions)
+- [Repository layout](#repository-layout)
+- [Troubleshooting](#troubleshooting)
+- [Citation](#citation)
+- [License](#license)
 
-git clone https://github.com/<your-username>/llm_majority_vote_ollama.git
+---
+
+## Key results
+
+Verified results across the **12 audited conditions** reported in the paper (4 dataset–model pairs × k ∈ {1, 3, 5}).
+
+| Dataset | Model | k=1 Acc | Best Acc | k=1 ECE | Best ECE |
+|---|---|---|---|---|---|
+| AG News | DeepSeek-R1:7B | 77.74% | **84.15%** (k=5) | 22.26% | **10.28%** (k=5) |
+| AG News | LLaMA-3.2:3B | 62.25% | **65.31%** (k=3) | 37.75% | **24.68%** (k=5) |
+| DBpedia | DeepSeek-R1:7B | 93.36% | **95.56%** (k=3) | 6.64% | **4.63%** (k=5) |
+| GoEmotions | DeepSeek-R1:7B | 26.19% | **38.12%** (k=5) | 73.81% | **34.62%** (k=5) |
+
+95% bootstrap CIs for every ECE value are reported in the paper's Table 1. The cost-effective ensemble size is task-dependent, not universal: **k = 3** is a strong default on near-ceiling, well-separated tasks (AG News, DBpedia), while harder, higher-cardinality tasks like GoEmotions keep gaining accuracy through **k = 5** — see the paper's Cost-Benefit Analysis (Section 7.3) for the full picture, including why that GoEmotions gain is coverage-conditioned rather than a free lunch.
+
+---
+
+## Why MMV
+
+Standard post-hoc calibration (temperature scaling, Platt scaling, histogram binning) has nothing to work with on a zero-shot LLM classifier: every `k = 1` prediction carries `confidence = 1.0` by construction, so there is no per-instance variation to calibrate. Cross-validated histogram binning can drive ECE to near-zero on `k = 1` outputs, but only by collapsing every prediction to the dataset's overall accuracy — which destroys per-instance discrimination and makes abstention or selective prediction impossible.
+
+MMV sidesteps this by generating **genuinely discriminative** confidence values through the vote mechanism itself: `conf ∈ {2/3, 3/3}` at k=3, `conf ∈ {3/5, 4/5, 5/5}` at k=5. That's enough signal to abstain on the cases the model is least sure about, without any labeled calibration data.
+
+---
+
+## Quickstart
+
+### 1. Install
+
+```bash
+git clone https://github.com/Akramtaha98/llm_majority_vote_ollama.git
 cd llm_majority_vote_ollama
 pip install -e .
+```
 
-2) (Free) Local LLM with Ollama
+### 2. Pull a local model (free, via Ollama)
 
-# macOS (Homebrew)
-brew install ollama
-ollama serve         # keep this terminal open
-# in a second terminal:
-ollama pull llama3.2
+```bash
+brew install ollama          # macOS
+ollama serve                 # keep this terminal open
 
-Sanity check:
+ollama pull llama3.2         # LLaMA 3.2:3B
+ollama pull deepseek-r1:7b   # DeepSeek-R1-Distill-Qwen-7B
+```
 
-ollama run llama3.2 "Hello"
+### 3. Run your first experiment
 
-3) Run your first experiment (AG News)
-
-python -m scripts.eval_dataset \
-  --provider ollama --model llama3.2 \
-  --dataset ag_news --k 5 --max-samples 200
-
-Outputs (CSV + printed metrics) go to runs/.
-
-⸻
-
-What the code is doing (in one minute)
-
-Majority-vote algorithm (K votes, pick the mode):
-
-for each text:
-  ask the LLM K independent times → labels L1, L2, ..., LK
-  predicted_label = most_common(L1..LK)
-  confidence = votes_for(predicted_label) / K   # e.g., 3/5 = 0.6
-
-This simple trick makes predictions less noisy than a single shot.
-
-⸻
-
-Datasets you can run
-	•	ag_news — 4 classes (World, Sports, Business, Sci/Tech)
-	•	dbpedia — 14 classes (entity types)
-	•	goemotions — multi-label emotions (we treat it as single-label by top response)
-	•	labr — Arabic sentiment (binary)
-
-Examples:
-
-# DBpedia (English)
-python -m scripts.eval_dataset \
-  --provider ollama --model llama3.2 \
-  --dataset dbpedia --k 5 --max-samples 200
-
-# GoEmotions (English)
-python -m scripts.eval_dataset \
-  --provider ollama --model llama3.2 \
-  --dataset goemotions --k 5 --max-samples 100
-
-Arabic LABR (binary sentiment)
-
-Provide a CSV with two columns: text,label where label ∈ {Positive, Negative}.
-
-# quick builder (200 balanced examples) – creates data/labr_binary_test.csv
-python - <<'PY'
-from datasets import load_dataset
-import pandas as pd, os
-ds = load_dataset("labr")
-def pick(df):
-  pos = df[df["rating"]>=4].sample(100, random_state=42)
-  neg = df[df["rating"]<=2].sample(100, random_state=42)
-  return pd.concat([pos,neg]).sample(frac=1, random_state=7)
-test = pick(ds["test"].to_pandas().rename(columns={"review_text":"text"}))
-out = test[["text","rating"]].assign(label=lambda d: d.rating.map(lambda r: "Positive" if r>=4 else "Negative"))[["text","label"]]
-os.makedirs("data", exist_ok=True)
-out.to_csv("data/labr_binary_test.csv", index=False, encoding="utf-8-sig")
-print("Saved", len(out), "rows to data/labr_binary_test.csv")
-PY
-
-# run LABR with a stronger free model
-ollama pull deepseek-r1:7b
+```bash
+# AG News, DeepSeek-R1:7B, k=5 (best accuracy + calibration in this study)
 python -m scripts.eval_dataset \
   --provider ollama --model deepseek-r1:7b \
-  --dataset labr --labr_csv data/labr_binary_test.csv \
-  --k 5 --max-samples 200
+  --dataset ag_news --k 5 --max-samples 300
 
-
-⸻
-
-Understanding the outputs
-
-Every run writes a CSV to runs/, for example:
-
-runs/ag_news_ollama_llama3.2_k5.csv
-
-Columns typically include:
-	•	text – input text (or id)
-	•	gold – true label
-	•	pred – model’s majority-vote label (or ABSTAIN if invalid output)
-	•	confidence – vote share of the winning label (0–1)
-
-You’ll also see printed metrics:
-	•	Accuracy (answered) — on non-abstained outputs
-	•	Macro-F1, MCC — quality across classes
-	•	ECE — calibration vs. vote confidence
-	•	Coverage — % of items that got a valid label (not ABSTAIN)
-
-Tip: If coverage is low, your model is likely not outputting exact labels.
-Fix: say “Answer with one of: World, Sports, Business, Sci/Tech — only the word.”
-
-⸻
-
-Reproduce the common comparisons
-
-Effect of K (vote strength) on AG News
-
-# K=3
-python -m scripts.eval_dataset --provider ollama --model llama3.2 \
-  --dataset ag_news --k 3 --max-samples 200
-
-# K=5
-python -m scripts.eval_dataset --provider ollama --model llama3.2 \
-  --dataset ag_news --k 5 --max-samples 200
-
-You should see accuracy and stability improve as K increases (with higher compute cost).
-
-Local models you can try (free)
-
-ollama pull llama3.2
-ollama pull deepseek-r1:7b
-# then swap --model
-
-OpenAI models (paid)
-
-export OPENAI_API_KEY=sk-...
+# AG News, LLaMA-3.2:3B, k=3
 python -m scripts.eval_dataset \
-  --provider openai --model gpt-4o \
-  --dataset ag_news --k 5 --max-samples 200
+  --provider ollama --model llama3.2 \
+  --dataset ag_news --k 3 --max-samples 1000
+```
 
+Results (CSV + printed metrics) land in `runs/`.
 
-⸻
+---
 
-Troubleshooting (fast)
-	•	Connection refused … 11434 → Start Ollama in a separate terminal: ollama serve.
-	•	Coverage = 0% → Your model wrote sentences instead of labels (e.g., DeepSeek).
-	•	Add: “Respond with only one label from {…}. No explanation.”
-	•	Or post-process the last line, or use a more instruction-following model (e.g., Llama).
-	•	Slow runs → Reduce --max-samples, reduce K, or use a smaller model.
-	•	Arabic → If accuracy is low, try translate-then-classify (Arabic→English→classify).
+## How it works
 
-⸻
+```text
+for each text x:
+    ask the LLM k independent times  →  labels y1, y2, ..., yk
+    winner = most_common(y1..yk)
+    if votes_for(winner) > k / 2:
+        predict winner,  conf = votes_for(winner) / k
+    else:
+        ABSTAIN   # no strict majority reached
+```
 
-Repo structure
+The strict-majority threshold uses the **original, fixed k** as its denominator — not the number of calls that happened to parse into a valid label. If too few calls parse to mathematically reach a majority of the original k, the sample abstains rather than being judged against a smaller denominator.
 
+For **DeepSeek-R1:7B**, `<think>…</think>` reasoning traces are stripped with `re.sub(r'<think>.*?</think>', '', output, flags=re.DOTALL)` before label extraction, and the remaining text is normalized against the task's fixed label set.
+
+---
+
+## Supported datasets
+
+| Flag | Classes | Notes |
+|---|---|---|
+| `ag_news` | 4 (World, Sports, Business, Sci/Tech) | English news topics |
+| `dbpedia` | 14 (entity types) | English knowledge base |
+| `goemotions` | 27 (fine-grained emotions) + neutral | Natively multi-label; MMV scores accuracy against any listed gold label, Macro-F1/MCC against the first-listed label (see paper Section 4.3) |
+| `labr` | 2 (binary sentiment) | Arabic; supported by the codebase, not part of the paper's reported study |
+
+```bash
+# DBpedia
+python -m scripts.eval_dataset \
+  --provider ollama --model deepseek-r1:7b \
+  --dataset dbpedia --k 3 --max-samples 300
+
+# GoEmotions
+python -m scripts.eval_dataset \
+  --provider ollama --model deepseek-r1:7b \
+  --dataset goemotions --k 5 --max-samples 300
+```
+
+---
+
+## Output format
+
+Each run writes a CSV to `runs/`, e.g. `runs/ag_news_ollama_deepseek-r1-7b_k5.csv`:
+
+| Column | Description |
+|---|---|
+| `id` | Sample identifier |
+| `gold` | True label (first-listed label for multi-label datasets) |
+| `gold_multi` | Full pipe-separated gold label set (GoEmotions only) |
+| `pred` | Majority-vote label, or `ABSTAIN` |
+| `text` | Input text |
+| `votes` | JSON dict of per-label vote counts across the k calls |
+| `top_votes` | Vote count for the winning label |
+| `K` | Number of independent calls requested |
+| `confidence` | `top_votes / K`, in [0, 1] |
+| `correct` | 1 if the prediction matches gold, 0 otherwise |
+
+Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **MCC**, **ECE** (15-bin, with bootstrap CIs), **coverage**.
+
+> **Coverage stuck near 0%?** The model is outputting free text instead of exact labels. Tighten the prompt: *"Respond with only one word from: {label_list}. No explanation."*
+
+---
+
+## Reproducing the paper's results
+
+```bash
+# AG News: DeepSeek-R1:7B and LLaMA-3.2:3B, k ∈ {1, 3, 5}
+for MODEL in deepseek-r1:7b llama3.2; do
+  for K in 1 3 5; do
+    python -m scripts.eval_dataset \
+      --provider ollama --model "$MODEL" \
+      --dataset ag_news --k "$K" --max-samples 1000
+  done
+done
+
+# DBpedia and GoEmotions: DeepSeek-R1:7B only, k ∈ {1, 3, 5}
+for DATASET in dbpedia goemotions; do
+  for K in 1 3 5; do
+    python -m scripts.eval_dataset \
+      --provider ollama --model deepseek-r1:7b \
+      --dataset "$DATASET" --k "$K" --max-samples 300
+  done
+done
+```
+
+Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; a fixed seed (=42) is used exactly once per dataset, before any model calls, purely to shuffle the sample.
+
+Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/).
+
+---
+
+## Excluded conditions
+
+The paper originally scoped 18 conditions (6 dataset–model pairs × k ∈ {1, 3, 5}). Two dataset–model pairs (6 conditions) were excluded after a post-hoc data-integrity audit and are **not** part of the verified results above:
+
+- **DBpedia × LLaMA-3.2** — the retained sample was drawn entirely from a single class (`Company`), making it non-representative.
+- **GoEmotions × LLaMA-3.2** — the retained per-sample record had every one of its 1,000 rows labeled `neutral`, inconsistent with GoEmotions' genuine ~26–28-label distribution.
+
+Both are flagged as open items for re-collection rather than reported with unverifiable numbers.
+
+---
+
+## Repository layout
+
+```text
 llm_majority_vote_ollama/
 ├── scripts/
-│   ├── eval_dataset.py      # run experiments
-│   └── make_plots.py        # optional plots from CSVs
+│   ├── eval_dataset.py        # main experiment runner
+│   ├── compute_results.py     # aggregate CSVs into summary tables
+│   ├── run_parallel.py        # parallelized batch runner
+│   └── make_plots.py          # generate figures from CSVs
 ├── src/llm_vote/
-│   ├── datasets.py          # AG News, DBpedia, GoEmotions, LABR CSV
-│   ├── metrics.py           # accuracy, macro-F1, MCC, ECE
-│   ├── ollama_client.py     # local (free) models
-│   ├── openai_client.py     # OpenAI models
-│   ├── prompting.py         # task prompts (edit here to tune!)
-│   ├── utils.py
-│   └── voter.py             # majority-vote logic
-├── data/                    # put custom csv here
-└── runs/                    # experiment outputs
+│   ├── voter.py                # MMV logic: majority vote + abstention
+│   ├── metrics.py              # accuracy, macro-F1, MCC, ECE (15-bin)
+│   ├── datasets.py             # AG News, DBpedia, GoEmotions, LABR loaders
+│   ├── ollama_client.py        # local models via Ollama
+│   ├── openai_client.py        # OpenAI API (optional)
+│   ├── prompting.py            # zero-shot prompts — edit here to tune
+│   └── utils.py
+├── data/                        # custom CSV datasets
+├── runs/                        # experiment outputs (CSV + logs)
+└── vote_records/                # per-sample vote-count records for the paper's 12 verified conditions
+```
 
+---
 
-⸻
+## Troubleshooting
 
-Citation
+| Problem | Fix |
+|---|---|
+| `Connection refused … 11434` | Run `ollama serve` in a separate terminal |
+| Coverage = 0% | Model is writing explanations, not labels — tighten the prompt |
+| Slow runs | Lower `--max-samples`, reduce `k`, or use a smaller model |
+| DeepSeek outputs look garbled | Confirm `<think>` stripping is active in `ollama_client.py` |
 
-@misc{llm_majority_vote_2025,
-  title   = {LLM-Assisted Text Classification with a Minimal Majority-Vote Algorithm},
-  author  = {Akram T. Zeyad and Fanan Hikmat Jassim},
-  year    = {2025},
-  url     = {https://github.com/<your-username>/llm_majority_vote_ollama}
+---
+
+## Citation
+
+This code accompanies *Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification*, currently under review. A formal citation with venue and DOI will be added here once the paper is published; in the meantime, please cite the repository and the manuscript authors directly:
+
+```bibtex
+@misc{mmv_2026,
+  title  = {Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification},
+  author = {Taher, Omar N. M. and Jeiad, Hassan A. and Noaman, Noaman M. and
+            Raheem, Firas A. and Salman, Aymen D. and Humaidi, Amjad J.},
+  year   = {2026},
+  note   = {Manuscript under review},
+  url    = {https://github.com/Akramtaha98/llm_majority_vote_ollama}
 }
+```
 
+---
 
+## License
+
+MIT
