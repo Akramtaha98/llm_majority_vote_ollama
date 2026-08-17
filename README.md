@@ -149,7 +149,7 @@ Each run writes a CSV to `runs/`, e.g. `runs/ag_news_ollama_deepseek-r1-7b_k5.cs
 | `confidence` | `top_votes / K`, in [0, 1] |
 | `correct` | 1 if the prediction matches gold, 0 otherwise |
 
-Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **MCC**, **ECE** (15-bin, with bootstrap CIs), **coverage**.
+Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **MCC**, **ECE** (15-bin), **coverage**. `eval_dataset.py` does not itself print confidence intervals; accuracy Wilson-score CIs and ECE bootstrap CIs (10,000 resamples) are computed by `scripts/regenerate_all.py` from the saved per-sample CSVs (see below), matching how they are computed for the paper's Table 1.
 
 > **Coverage stuck near 0%?** The model is outputting free text instead of exact labels. Tighten the prompt: *"Respond with only one word from: {label_list}. No explanation."*
 
@@ -157,17 +157,29 @@ Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **
 
 ## Reproducing the paper's results
 
+**Sampling-provenance note (post-submission audit; manuscript Section 7.5):** not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline; pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically. The commands below use the historically-correct flag for each condition.
+
 ```bash
-# AG News: DeepSeek-R1:7B and LLaMA-3.2:3B, k ∈ {1, 3, 5}
-for MODEL in deepseek-r1:7b llama3.2; do
-  for K in 1 3 5; do
-    python -m scripts.eval_dataset \
-      --provider ollama --model "$MODEL" \
-      --dataset ag_news --k "$K" --max-samples 1000
-  done
+# AG News, DeepSeek-R1:7B: k=1 uses an independent n=1,000, unshuffled;
+# k=3 and k=5 use a separate, shuffled n=300 (these two are nested with each other,
+# not with the k=1 sample -- see Section 4.4/7.5).
+python -m scripts.eval_dataset \
+  --provider ollama --model deepseek-r1:7b \
+  --dataset ag_news --k 1 --max-samples 1000 --no-shuffle
+for K in 3 5; do
+  python -m scripts.eval_dataset \
+    --provider ollama --model deepseek-r1:7b \
+    --dataset ag_news --k "$K" --max-samples 300
 done
 
-# DBpedia and GoEmotions: DeepSeek-R1:7B only, k ∈ {1, 3, 5}
+# AG News, LLaMA-3.2:3B: all three k share one unshuffled n=1,000 sample.
+for K in 1 3 5; do
+  python -m scripts.eval_dataset \
+    --provider ollama --model llama3.2 \
+    --dataset ag_news --k "$K" --max-samples 1000 --no-shuffle
+done
+
+# DBpedia and GoEmotions: DeepSeek-R1:7B only, k ∈ {1, 3, 5}, shuffled n=300
 for DATASET in dbpedia goemotions; do
   for K in 1 3 5; do
     python -m scripts.eval_dataset \
@@ -177,9 +189,9 @@ for DATASET in dbpedia goemotions; do
 done
 ```
 
-Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; a fixed seed (=42) is used exactly once per dataset, before any model calls, purely to shuffle the sample.
+Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; where used, the fixed seed (=42) is applied exactly once per dataset, before any model calls, purely to shuffle the sample (see the sampling-provenance note above for which conditions this actually applies to).
 
-Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/). Run `python3 scripts/regenerate_all.py` to regenerate that scored data and Tables 1, 2, 5, and 7 directly from the raw votes, with no hand-typed numbers anywhere downstream.
+Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/). Run `python3 scripts/regenerate_all.py` to regenerate that scored data and Tables 1 (with accuracy Wilson CIs and ECE bootstrap CIs), 2 (full parser-failure/abstention decomposition), 5 (including k=1 baseline rows), and 7 directly from the raw votes, with no hand-typed numbers anywhere downstream. ECE bootstrap CI *bounds* can differ from the manuscript's printed values by up to a few tenths of a percentage point on the smaller-N (k=3/5) conditions, since re-running a 10,000-resample bootstrap with a different random draw is expected to shift the interval slightly; every point estimate and the accuracy CIs match exactly (see the docstring in `regenerate_all.py`).
 
 ---
 

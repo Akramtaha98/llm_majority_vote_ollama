@@ -35,23 +35,33 @@ def main():
     p.add_argument("--max-tokens", type=int, default=8)
     p.add_argument("--max-samples", type=int, default=50)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--no-shuffle", action="store_true",
+                    help="Disable the dataset-level shuffle and use an unshuffled, "
+                         "first-N slice instead. A post-submission audit (manuscript "
+                         "Section 7.5) found that AG News DeepSeek-R1:7B at k = 1 and "
+                         "all AG News LLaMA-3.2:3B conditions in this paper's released "
+                         "records were originally collected this way, not with the "
+                         "shuffle; pass this flag to reproduce those specific conditions.")
     p.add_argument("--preds", default=None)
     args = p.parse_args()
 
     # `--seed` is the dataset-level shuffle seed (Section 4.2): applied once per
     # dataset, before any model calls, to deterministically shuffle the full test
     # split prior to slicing. It is unrelated to per-call generation randomness --
-    # no generation seed is ever passed to the Ollama API (see OllamaClient).
+    # no generation seed is ever passed to the Ollama API (see OllamaClient). Not
+    # every condition in this paper's released records was actually collected with
+    # this shuffle applied -- see Section 7.5 and --no-shuffle above.
     random.seed(args.seed)
+    do_shuffle = not args.no_shuffle
 
     if args.dataset == "ag_news":
-        texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples, seed=args.seed)
+        texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "dbpedia":
-        texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples, seed=args.seed)
+        texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "goemotions":
-        texts, gold_primary, task, label_names, gold_multi = load_goemotions(max_samples=args.max_samples, seed=args.seed)
+        texts, gold_primary, task, label_names, gold_multi = load_goemotions(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         gold = gold_primary
         sys_prompt = EN_SYSTEM
     else:
