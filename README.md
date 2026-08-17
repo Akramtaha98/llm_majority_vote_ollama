@@ -1,130 +1,199 @@
-Perfect — let’s make your README look like a polished research artifact. I’ll extend the previous draft by adding example results tables. These aren’t final numbers (since they depend on the actual runs you perform), but they show reviewers and readers how to interpret the outputs. You can replace them later with your real CSV-based results.
-
-⸻
-
 LLM-Assisted Text Classification with a Minimal Majority-Vote Algorithm
 
-This repository provides an open-source baseline for text classification using Large Language Models (LLMs) combined with a minimal majority-vote algorithm.
+A simple baseline that works
 
-It supports both OpenAI GPT models and free local models via Ollama, enabling reproducible experiments across English and Arabic datasets.
-This code was developed in support of a research paper submission to MDPI Computers (Special Issue: Large Language Models in Computer Science).
-
-⸻
-
-✨ Features
-	•	Majority Vote Algorithm: Query an LLM multiple times and return the most frequent label.
-	•	Multiple Datasets:
-	•	AG News (news classification, English)
-	•	DBpedia 14 (entity classification, English)
-	•	GoEmotions (emotion classification, English)
-	•	LABR (sentiment analysis, Arabic; binary Positive/Negative)
-	•	Metrics:
-	•	Accuracy
-	•	Macro-F1
-	•	Matthews Correlation Coefficient (MCC)
-	•	Expected Calibration Error (ECE)
-	•	Providers:
-	•	openai → GPT-4, GPT-4o, GPT-3.5
-	•	ollama → local free models (LLaMA-3.2, DeepSeek-R1, etc.)
+This repo is a tiny, practical baseline for text classification with Large Language Models (LLMs).
+You ask the model the same question K times, then pick the most common label (majority vote).
+It works with OpenAI or free local models via Ollama. Datasets: AG News (English), DBpedia (English), GoEmotions (English), and LABR (Arabic sentiment).
 
 ⸻
 
-🛠 Installation
+Why this is useful
+	•	No training: zero-shot classification with prompts only.
+	•	More stable: asking K times reduces random mistakes.
+	•	Free option: run local models (Llama 3.x, DeepSeek) with Ollama.
+
+⸻
+
+5-Minute Quickstart
+
+1) Install
 
 git clone https://github.com/<your-username>/llm_majority_vote_ollama.git
 cd llm_majority_vote_ollama
 pip install -e .
 
-Install Ollama (for local models):
+2) (Free) Local LLM with Ollama
 
+# macOS (Homebrew)
 brew install ollama
-ollama serve &
+ollama serve         # keep this terminal open
+# in a second terminal:
 ollama pull llama3.2
 
+Sanity check:
 
-⸻
+ollama run llama3.2 "Hello"
 
-🚀 Usage
-
-General command:
-
-python -m scripts.eval_dataset \
-  --provider {ollama|openai} \
-  --model MODEL_NAME \
-  --dataset {ag_news|dbpedia|goemotions|labr} \
-  [--labr_csv PATH] \
-  --k K --max-samples N [--early-stop]
-
-Example run:
+3) Run your first experiment (AG News)
 
 python -m scripts.eval_dataset \
   --provider ollama --model llama3.2 \
   --dataset ag_news --k 5 --max-samples 200
 
+Outputs (CSV + printed metrics) go to runs/.
 
 ⸻
 
-📊 Example Results
+What the code is doing (in one minute)
 
-Below are illustrative results (replace with your own after running experiments).
+Majority-vote algorithm (K votes, pick the mode):
 
-Table 1 — Accuracy and F1 across datasets (k=5)
+for each text:
+  ask the LLM K independent times → labels L1, L2, ..., LK
+  predicted_label = most_common(L1..LK)
+  confidence = votes_for(predicted_label) / K   # e.g., 3/5 = 0.6
 
-Dataset	Model	Accuracy	Macro-F1	MCC	ECE
-AG News	LLaMA-3.2 (Ollama)	65.2%	63.5%	0.58	18.4%
-DBpedia 14	DeepSeek-R1:7B	71.8%	70.9%	0.67	21.2%
-GoEmotions	LLaMA-3.2 (Ollama)	41.5%	38.7%	0.29	33.6%
-LABR (Arabic)	DeepSeek-R1:7B	82.3%	81.5%	0.64	12.7%
+This simple trick makes predictions less noisy than a single shot.
+
+⸻
+
+Datasets you can run
+	•	ag_news — 4 classes (World, Sports, Business, Sci/Tech)
+	•	dbpedia — 14 classes (entity types)
+	•	goemotions — multi-label emotions (we treat it as single-label by top response)
+	•	labr — Arabic sentiment (binary)
+
+Examples:
+
+# DBpedia (English)
+python -m scripts.eval_dataset \
+  --provider ollama --model llama3.2 \
+  --dataset dbpedia --k 5 --max-samples 200
+
+# GoEmotions (English)
+python -m scripts.eval_dataset \
+  --provider ollama --model llama3.2 \
+  --dataset goemotions --k 5 --max-samples 100
+
+Arabic LABR (binary sentiment)
+
+Provide a CSV with two columns: text,label where label ∈ {Positive, Negative}.
+
+# quick builder (200 balanced examples) – creates data/labr_binary_test.csv
+python - <<'PY'
+from datasets import load_dataset
+import pandas as pd, os
+ds = load_dataset("labr")
+def pick(df):
+  pos = df[df["rating"]>=4].sample(100, random_state=42)
+  neg = df[df["rating"]<=2].sample(100, random_state=42)
+  return pd.concat([pos,neg]).sample(frac=1, random_state=7)
+test = pick(ds["test"].to_pandas().rename(columns={"review_text":"text"}))
+out = test[["text","rating"]].assign(label=lambda d: d.rating.map(lambda r: "Positive" if r>=4 else "Negative"))[["text","label"]]
+os.makedirs("data", exist_ok=True)
+out.to_csv("data/labr_binary_test.csv", index=False, encoding="utf-8-sig")
+print("Saved", len(out), "rows to data/labr_binary_test.csv")
+PY
+
+# run LABR with a stronger free model
+ollama pull deepseek-r1:7b
+python -m scripts.eval_dataset \
+  --provider ollama --model deepseek-r1:7b \
+  --dataset labr --labr_csv data/labr_binary_test.csv \
+  --k 5 --max-samples 200
 
 
 ⸻
 
-Table 2 — Effect of K (majority vote strength) on AG News
+Understanding the outputs
 
-K	Accuracy	Macro-F1	MCC	Coverage
-1	55.0%	52.7%	0.44	100%
-3	61.2%	59.9%	0.52	100%
-5	65.2%	63.5%	0.58	100%
+Every run writes a CSV to runs/, for example:
 
-Observation: Increasing K improves stability and accuracy, but also increases compute cost.
+runs/ag_news_ollama_llama3.2_k5.csv
+
+Columns typically include:
+	•	text – input text (or id)
+	•	gold – true label
+	•	pred – model’s majority-vote label (or ABSTAIN if invalid output)
+	•	confidence – vote share of the winning label (0–1)
+
+You’ll also see printed metrics:
+	•	Accuracy (answered) — on non-abstained outputs
+	•	Macro-F1, MCC — quality across classes
+	•	ECE — calibration vs. vote confidence
+	•	Coverage — % of items that got a valid label (not ABSTAIN)
+
+Tip: If coverage is low, your model is likely not outputting exact labels.
+Fix: say “Answer with one of: World, Sports, Business, Sci/Tech — only the word.”
 
 ⸻
 
-📂 Repository Structure
+Reproduce the common comparisons
+
+Effect of K (vote strength) on AG News
+
+# K=3
+python -m scripts.eval_dataset --provider ollama --model llama3.2 \
+  --dataset ag_news --k 3 --max-samples 200
+
+# K=5
+python -m scripts.eval_dataset --provider ollama --model llama3.2 \
+  --dataset ag_news --k 5 --max-samples 200
+
+You should see accuracy and stability improve as K increases (with higher compute cost).
+
+Local models you can try (free)
+
+ollama pull llama3.2
+ollama pull deepseek-r1:7b
+# then swap --model
+
+OpenAI models (paid)
+
+export OPENAI_API_KEY=sk-...
+python -m scripts.eval_dataset \
+  --provider openai --model gpt-4o \
+  --dataset ag_news --k 5 --max-samples 200
+
+
+⸻
+
+Troubleshooting (fast)
+	•	Connection refused … 11434 → Start Ollama in a separate terminal: ollama serve.
+	•	Coverage = 0% → Your model wrote sentences instead of labels (e.g., DeepSeek).
+	•	Add: “Respond with only one label from {…}. No explanation.”
+	•	Or post-process the last line, or use a more instruction-following model (e.g., Llama).
+	•	Slow runs → Reduce --max-samples, reduce K, or use a smaller model.
+	•	Arabic → If accuracy is low, try translate-then-classify (Arabic→English→classify).
+
+⸻
+
+Repo structure
 
 llm_majority_vote_ollama/
-├── scripts/                 # Experiment scripts
-│   ├── eval_dataset.py
-│   ├── make_plots.py
-├── src/llm_vote/            # Core implementation
-│   ├── datasets.py
-│   ├── metrics.py
-│   ├── ollama_client.py
-│   ├── openai_client.py
-│   ├── prompting.py
+├── scripts/
+│   ├── eval_dataset.py      # run experiments
+│   └── make_plots.py        # optional plots from CSVs
+├── src/llm_vote/
+│   ├── datasets.py          # AG News, DBpedia, GoEmotions, LABR CSV
+│   ├── metrics.py           # accuracy, macro-F1, MCC, ECE
+│   ├── ollama_client.py     # local (free) models
+│   ├── openai_client.py     # OpenAI models
+│   ├── prompting.py         # task prompts (edit here to tune!)
 │   ├── utils.py
-│   └── voter.py
-├── data/                    # Place custom datasets here
-├── runs/                    # Experiment outputs (CSV)
-├── pyproject.toml
-└── README.md
+│   └── voter.py             # majority-vote logic
+├── data/                    # put custom csv here
+└── runs/                    # experiment outputs
 
 
 ⸻
 
-📌 Notes
-	•	Use Ollama for free local inference.
-	•	Use OpenAI API keys for GPT-4/4o.
-	•	LABR dataset must be preprocessed into a binary CSV.
-	•	Replace example tables with your real results from runs/*.csv.
-
-⸻
-
-🧾 Citation
+Citation
 
 @misc{llm_majority_vote_2025,
   title   = {LLM-Assisted Text Classification with a Minimal Majority-Vote Algorithm},
-  author  = {Akram T.Zeyad, Fanan Hikmat Jassim},
+  author  = {Akram T. Zeyad and Fanan Hikmat Jassim},
   year    = {2025},
   url     = {https://github.com/<your-username>/llm_majority_vote_ollama}
 }
