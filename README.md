@@ -1,6 +1,6 @@
 # Minimal Majority Vote (MMV)
 
-### Calibrated zero-shot LLM classification — no training, no logits, no calibration set
+### Calibrated zero-shot LLM classification no training, no logits, no calibration set
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
