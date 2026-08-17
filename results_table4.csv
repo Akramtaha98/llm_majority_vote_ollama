@@ -1,0 +1,7 @@
+Dataset,SOTA Model,SOTA Score,MMV Model,MMV Score (k=5),Gap vs SOTA
+AG News,Fine-tuned BERT,93.8 (Accuracy (%)),DeepSeek-R1:7B,—,—
+AG News,Fine-tuned BERT,93.8 (Accuracy (%)),LLaMA-3.2,63.00,+30.80
+DBpedia,XLNet,98.9 (Accuracy (%)),DeepSeek-R1:7B,—,—
+DBpedia,XLNet,98.9 (Accuracy (%)),LLaMA-3.2,—,—
+GoEmotions,Fine-tuned RoBERTa,0.49 (Macro-F1),DeepSeek-R1:7B,—,—
+GoEmotions,Fine-tuned RoBERTa,0.49 (Macro-F1),LLaMA-3.2,—,—
