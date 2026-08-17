@@ -28,31 +28,43 @@ def main():
     p.add_argument("--abstain", type=float, default=0.0)
     p.add_argument("--early-stop", action="store_true")
     p.add_argument("--temperature", type=float, default=0.7)
+    p.add_argument("--top-p", type=float, default=0.9)
+    p.add_argument("--top-k", type=int, default=40)
+    p.add_argument("--repeat-penalty", type=float, default=1.1)
+    p.add_argument("--num-ctx", type=int, default=4096)
     p.add_argument("--max-tokens", type=int, default=8)
     p.add_argument("--max-samples", type=int, default=50)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--preds", default=None)
     args = p.parse_args()
 
+    # `--seed` is the dataset-level shuffle seed (Section 4.2): applied once per
+    # dataset, before any model calls, to deterministically shuffle the full test
+    # split prior to slicing. It is unrelated to per-call generation randomness --
+    # no generation seed is ever passed to the Ollama API (see OllamaClient).
     random.seed(args.seed)
 
     if args.dataset == "ag_news":
-        texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples)
+        texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples, seed=args.seed)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "dbpedia":
-        texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples)
+        texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples, seed=args.seed)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "goemotions":
-        texts, gold_primary, task, label_names, gold_multi = load_goemotions(max_samples=args.max_samples)
+        texts, gold_primary, task, label_names, gold_multi = load_goemotions(max_samples=args.max_samples, seed=args.seed)
         gold = gold_primary
         sys_prompt = EN_SYSTEM
     else:
-        texts, gold, task, label_names = load_labr_csv(args.labr_csv, max_samples=args.max_samples)
+        texts, gold, task, label_names = load_labr_csv(args.labr_csv, max_samples=args.max_samples, seed=args.seed)
         sys_prompt = AR_SYSTEM
 
     # Choose client
     if args.provider == "ollama":
-        client = OllamaClient(model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
+        client = OllamaClient(
+            model=args.model, temperature=args.temperature, top_p=args.top_p,
+            top_k=args.top_k, repeat_penalty=args.repeat_penalty, num_ctx=args.num_ctx,
+            max_tokens=args.max_tokens,
+        )
     else:
         if not HAS_OPENAI:
             raise RuntimeError("OpenAI client not available. Install 'openai' and set OPENAI_API_KEY.")
@@ -102,7 +114,7 @@ def main():
     mcc_val = mcc(gold, preds, label_to_idx)
     ans_confs = [c for p,c in zip(preds, confs) if p is not None]
     ans_corrs = [c for p,c in zip(preds, corrects) if p is not None]
-    ece = expected_calibration_error(ans_confs, ans_corrs, n_bins=10)
+    ece = expected_calibration_error(ans_confs, ans_corrs, n_bins=15)
     covered = sum(1 for p in preds if p is not None) / len(preds) if preds else 0.0
 
     print(f"Provider: {args.provider}   Model: {args.model}")

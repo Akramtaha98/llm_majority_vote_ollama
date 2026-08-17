@@ -1,10 +1,13 @@
-\
 from __future__ import annotations
 from typing import Dict, List, Optional, Tuple
 import re
 
 def normalize_label(label: str) -> str:
-    return re.sub(r"\s+", " ", label.strip()).lower()
+    """Whitespace-normalize only. Matching against the fixed label set is
+    case-sensitive, per the manuscript's Materials and Methods (Section 4.3):
+    a raw model output must match a label's exact casing to be counted as a
+    valid vote for that label."""
+    return re.sub(r"\s+", " ", label.strip())
 
 def majority_vote_single(
     client,
@@ -18,6 +21,13 @@ def majority_vote_single(
     """
     Run K stochastic calls to the LLM and return (prediction_or_None, vote_counts).
     Early stopping triggers as soon as any label has strict majority (> K/2).
+
+    MMV's abstention rule is unconditional and uses the ORIGINAL, fixed K as its
+    denominator (not the number of calls that happened to parse into a valid
+    label): a prediction is only returned when one label's vote count is a
+    strict majority of K (mode > K/2). `abstain_threshold`, if set above 0.5,
+    can additionally require an even higher vote share than a bare majority;
+    it can never loosen the K/2 rule below a strict majority.
     """
     norm_map = {normalize_label(l): l for l in labels}
     vote_counts: Dict[str, int] = {l: 0 for l in labels}
@@ -47,8 +57,14 @@ def majority_vote_single(
             final_label = l
             break
 
+    # Strict-majority abstention (Equation 1): mode must exceed K/2, using the
+    # original fixed K, not sum(vote_counts.values()). This is unconditional --
+    # it is MMV's core definition, not an opt-in behind abstain_threshold.
+    if mode <= K / 2.0:
+        return None, vote_counts
+
     top_share = mode / K if K > 0 else 0.0
-    if abstain_threshold > 0.0 and top_share < abstain_threshold:
+    if abstain_threshold > 0.5 and top_share < abstain_threshold:
         return None, vote_counts
 
     return final_label, vote_counts

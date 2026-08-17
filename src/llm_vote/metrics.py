@@ -36,7 +36,12 @@ def mcc(y_true: List[str], y_pred: List[Optional[str]], label_to_idx: Dict[str, 
         return 0.0
     return matthews_corrcoef(filt_true, filt_pred)
 
-def expected_calibration_error(confidences, corrects, n_bins: int = 10) -> float:
+def expected_calibration_error(confidences, corrects, n_bins: int = 15) -> float:
+    """15-bin ECE by default, matching the manuscript (Section 4.3, Table 1).
+    The first bin is inclusive on both ends; every subsequent bin is
+    (lo, hi] (exclusive-lower, inclusive-upper), so a confidence value that
+    lands exactly on a shared bin boundary is counted in exactly one bin,
+    never both."""
     confidences = np.asarray(confidences)
     corrects = np.asarray(corrects)
     if len(confidences) == 0:

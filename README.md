@@ -179,7 +179,7 @@ done
 
 Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; a fixed seed (=42) is used exactly once per dataset, before any model calls, purely to shuffle the sample.
 
-Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/).
+Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/). Run `python3 scripts/regenerate_all.py` to regenerate that scored data and Tables 1, 2, 5, and 7 directly from the raw votes, with no hand-typed numbers anywhere downstream.
 
 ---
 
