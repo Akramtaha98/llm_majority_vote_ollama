@@ -1,8 +1,8 @@
 # Reviewer Data Package -- "Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification"
 
 This package accompanies the manuscript and is provided so reviewers can independently
-verify the coverage/parser-failure statistics reported in Table 1 and Table 2, without
-waiting for the post-acceptance public archive.
+verify the coverage/parser-failure statistics reported in Table 1 and Table 2. It is
+already public on this repository's `main` branch, not gated behind acceptance.
 
 ## Contents
 
@@ -14,7 +14,27 @@ waiting for the post-acceptance public archive.
   bootstrap ECE CIs) for all 18 originally-run conditions, including the 2 excluded from
   the paper (LLaMA-3.2 on DBpedia; LLaMA-3.2 on GoEmotions), for transparency.
 
-## Per-sample CSV columns
+## IMPORTANT: `pred`/`correct` here are NOT MMV predictions
+
+The `pred` and `correct` columns in `per_sample_vote_count_records/` are the raw
+plurality ("self-consistency", always-predict) outcome for every sample -- they do
+**not** apply MMV's strict-majority abstention rule (Equation 1). A sample with only
+a 2-of-5 or 1-of-3 vote plurality will still show a `pred` value and `correct = 1` or
+`0` here, even though MMV abstains on that sample (no label reaches a strict majority
+of the original k). For example, a sample with votes `{"A": 2, "B": 2, "C": 1}` at
+k = 5 shows a `pred` in this file (whichever label the always-predict rule picks), but
+is an MMV abstention, not an MMV prediction -- this is expected and is not an error in
+the released data.
+
+If you want MMV's actual prediction and correctness for each sample -- including the
+explicit `ABSTAIN` outcome -- use the pre-scored copy of these same records in
+[`per_sample_vote_count_records_scored/`](per_sample_vote_count_records_scored/),
+which adds `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure`
+columns computed directly from this file's own `votes` field (see that folder's
+README for the exact columns and the script, `scripts/regenerate_all.py`, that
+generates them from scratch).
+
+## Per-sample CSV columns (this folder, as originally recorded)
 
 `id, gold, [gold_multi,] pred, text, votes, top_votes, K, confidence, correct`
 
@@ -23,9 +43,8 @@ waiting for the post-acceptance public archive.
   that parsed successfully for a sample is `sum(votes.values())`.
 - `top_votes`, `K`, `confidence`: the winning label's vote count, the ensemble size, and
   `top_votes / K`.
-- `correct`: 1 if the returned prediction was scored correct against gold (for
-  GoEmotions, matched against the multi-label gold set as described in the manuscript's
-  Materials and Methods section), 0 otherwise.
+- `pred`, `correct`: the always-predict (self-consistency) label and its correctness --
+  see the warning above; this is not MMV's prediction.
 
 ## How to reproduce Table 2's decomposition
 
