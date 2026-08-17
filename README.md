@@ -1,13 +1,13 @@
 # Minimal Majority Vote (MMV)
 
-### Calibrated zero-shot LLM classification — no training, no logits, no calibration set
+### Calibrated zero-shot LLM classification no training, no logits, no calibration set
 
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status](https://img.shields.io/badge/status-research--code-orange)](#)
 [![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black?logo=ollama&logoColor=white)](https://ollama.com)
 
-Ask the LLM the same question **k independent times**, take the hard majority label, and use `conf = top_votes / k` as a per-instance uncertainty signal. Abstain when no strict majority is reached. No fine-tuning, no logit access, no held-out calibration data — just repeated zero-shot calls and a vote count.
+Ask the LLM the same question **k independent times**, take the hard majority label, and use `conf = top_votes / k` as a per-instance uncertainty signal. Abstain when no strict majority is reached. No fine-tuning, no logit access, no held-out calibration data just repeated zero-shot calls and a vote count.
 
 This repository is the reference implementation for *Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification*.
 
