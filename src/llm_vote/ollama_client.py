@@ -44,6 +44,12 @@ class OllamaClient:
                     "top_k": self.top_k,
                     "repeat_penalty": self.repeat_penalty,
                     "num_ctx": self.num_ctx,
+                    # BUGFIX (reviewer-flagged): max_tokens was accepted as a
+                    # constructor parameter but never forwarded to the Ollama API,
+                    # so server-side generation length was never actually bounded
+                    # by it. Ollama's generation-length option is `num_predict`,
+                    # not `max_tokens` -- forward it explicitly.
+                    "num_predict": self.max_tokens,
                 },
             },
             timeout=120,

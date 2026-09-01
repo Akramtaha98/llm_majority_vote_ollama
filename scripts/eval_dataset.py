@@ -54,6 +54,7 @@ def main():
     random.seed(args.seed)
     do_shuffle = not args.no_shuffle
 
+    gold_multi = None
     if args.dataset == "ag_news":
         texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         sys_prompt = EN_SYSTEM
@@ -107,9 +108,21 @@ def main():
         confs.append(conf)
         corrects.append(is_correct)
 
+        # BUGFIX (reviewer-flagged, GoEmotions output schema): the previous
+        # version wrote the pipe-joined *multi-label* set into the single-valued
+        # "gold" column for GoEmotions, and never wrote a "gold_multi" column at
+        # all -- contradicting the README's documented schema ("gold" = the
+        # first-listed label; "gold_multi" = the full pipe-separated label set,
+        # GoEmotions only) and breaking any downstream script (e.g.
+        # regenerate_all.py) that expects "gold" to be single-valued for
+        # macro-F1/MCC. "gold" is now always single-valued (first-listed label
+        # for GoEmotions, matching what is passed to macro_f1()/mcc() above);
+        # "gold_multi" carries the full label set for GoEmotions and is left
+        # blank for single-label datasets.
         rows.append({
             "id": i,
-            "gold": gold[i] if args.dataset != "goemotions" else "|".join(gold_multi[i]),
+            "gold": gold[i],
+            "gold_multi": "|".join(gold_multi[i]) if gold_multi is not None else "",
             "pred": pred if pred is not None else "ABSTAIN",
             "text": text,
             "votes": json.dumps(votes, ensure_ascii=False),

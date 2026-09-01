@@ -8,6 +8,12 @@ Usage:
 Outputs:
     - Prints Table 3 (full metrics) and Table 4 (vs SOTA) to terminal
     - Saves  results_table3.csv  and  results_table4.csv
+
+NOTE: scripts/regenerate_all.py is now the canonical, reviewer-verified path for
+regenerating the manuscript's Tables 1, 2, 5, and 7 directly from the raw vote
+records (see README > Reproducing the paper's results). This script is retained
+for ad-hoc aggregation of new run CSVs into the Table 3 / Table 4 format and has
+been patched to match regenerate_all.py's/metrics.py's ECE binning (see _ece below).
 """
 from __future__ import annotations
 import argparse
@@ -46,10 +52,24 @@ def detect_k(fname: str):
     return None
 
 def _ece(confidences, corrects, n_bins=15):
+    """15-bin ECE, matching src/llm_vote/metrics.py::expected_calibration_error
+    and the manuscript (Section 4.3, Table 1).
+
+    BUGFIX (reviewer-flagged): the previous version used an inclusive [b_lo, b_hi]
+    mask for every bin, so a confidence value landing exactly on an *interior*
+    bin boundary (e.g. 4/15 = 0.2667) was counted in BOTH the bin below and the
+    bin above -- double-counting that sample and inflating the reported ECE.
+    Only the first bin should be closed on the left; every other bin must be
+    (lo, hi] -- exclusive-lower, inclusive-upper -- so each sample lands in
+    exactly one bin.
+    """
     bins = np.linspace(0.0, 1.0, n_bins + 1)
     ece  = 0.0
     for b_lo, b_hi in zip(bins[:-1], bins[1:]):
-        mask = (confidences >= b_lo) & (confidences <= b_hi)
+        if b_lo == 0.0:
+            mask = (confidences >= b_lo) & (confidences <= b_hi)
+        else:
+            mask = (confidences > b_lo) & (confidences <= b_hi)
         if mask.sum() == 0:
             continue
         ece += mask.mean() * abs(corrects[mask].mean() - confidences[mask].mean())
