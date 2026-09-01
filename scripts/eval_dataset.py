@@ -43,6 +43,11 @@ def main():
                          "records were originally collected this way, not with the "
                          "shuffle; pass this flag to reproduce those specific conditions.")
     p.add_argument("--preds", default=None)
+    p.add_argument("--save-raw-outputs", action="store_true",
+                    help="Also persist the exact raw string returned by the model for "
+                         "each individual call (not just aggregated vote counts), to a "
+                         "companion .raw.jsonl file next to the output CSV. Off by "
+                         "default (added per reviewer request; see AUDIT_APPLE_M3.md).")
     args = p.parse_args()
 
     # `--seed` is the dataset-level shuffle seed (Section 4.2): applied once per
@@ -86,14 +91,23 @@ def main():
     corrects: List[bool] = []
     label_to_idx = {l:i for i,l in enumerate(label_names)}
     rows = []
+    raw_rows = []
     K = args.k
 
     for i, text in enumerate(tqdm(texts, desc="Classifying")):
         user_prompt = build_prompt(text, label_names, task)
-        pred, votes = majority_vote_single(
-            client, sys_prompt, user_prompt,
-            labels=label_names, K=K, abstain_threshold=args.abstain, early_stop=args.early_stop
-        )
+        if args.save_raw_outputs:
+            pred, votes, raw_calls = majority_vote_single(
+                client, sys_prompt, user_prompt,
+                labels=label_names, K=K, abstain_threshold=args.abstain, early_stop=args.early_stop,
+                collect_raw=True,
+            )
+        else:
+            pred, votes = majority_vote_single(
+                client, sys_prompt, user_prompt,
+                labels=label_names, K=K, abstain_threshold=args.abstain, early_stop=args.early_stop
+            )
+            raw_calls = None
         if pred is None:
             conf, top_label, top = 0.0, "", 0
             is_correct = False
@@ -119,6 +133,9 @@ def main():
         # for GoEmotions, matching what is passed to macro_f1()/mcc() above);
         # "gold_multi" carries the full label set for GoEmotions and is left
         # blank for single-label datasets.
+        if args.save_raw_outputs:
+            raw_rows.append({"id": i, "raw_calls": raw_calls})
+
         rows.append({
             "id": i,
             "gold": gold[i],
@@ -153,6 +170,13 @@ def main():
     out_csv = args.preds or f"runs/{args.dataset}_{args.provider}_{args.model.replace(':','-')}_k{K}.csv"
     pd.DataFrame(rows).to_csv(out_csv, index=False)
     print(f"Saved predictions to: {out_csv}")
+
+    if args.save_raw_outputs:
+        raw_path = out_csv.rsplit(".", 1)[0] + ".raw.jsonl"
+        with open(raw_path, "w", encoding="utf-8") as f:
+            for r in raw_rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        print(f"Saved raw per-call outputs to: {raw_path}")
 
 if __name__ == "__main__":
     main()
