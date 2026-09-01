@@ -7,7 +7,7 @@
 [![Status](https://img.shields.io/badge/status-research--code-orange)](#)
 [![Ollama](https://img.shields.io/badge/runs%20on-Ollama-black?logo=ollama&logoColor=white)](https://ollama.com)
 
-Ask the LLM the same question **k independent times**, take the hard majority label, and use `conf = top_votes / k` as a per-instance uncertainty signal. Abstain when no strict majority is reached. No fine-tuning, no logit access, no held-out calibration data — just repeated zero-shot calls and a vote count.
+Ask the LLM the same question **k independent times**, take the hard majority label, and use `conf = top_votes / k` as a per-instance uncertainty signal. Abstain when no strict majority is reached. No fine-tuning, no logit access, no held-out calibration data just repeated zero-shot calls and a vote count.
 
 This repository is the reference implementation for *Minimal Majority Vote Ensembles for Robust LLM-Based Text Classification*.
 
@@ -87,7 +87,7 @@ python -m scripts.eval_dataset \
   --dataset ag_news --k 3 --max-samples 1000
 ```
 
-Results (CSV + printed metrics) land in `runs/`. Don't pass `--max-tokens` unless you have a specific reason to override the generation-length default — `eval_dataset.py` already picks the right cap per model family (see [Troubleshooting](#troubleshooting)).
+Results (CSV + printed metrics) land in `runs/`. Don't pass `--max-tokens` unless you have a specific reason to override the generation-length default - `eval_dataset.py` already picks the right cap per model family (see [Troubleshooting](#troubleshooting)).
 
 ---
 
@@ -157,7 +157,7 @@ Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **
 
 ## Reproducing the paper's results
 
-**Sampling-provenance note** (post-submission audit; manuscript Section 7.6): not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline. Pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically — the commands below already use the historically correct flag for each condition.
+**Sampling-provenance note** (post-submission audit; manuscript Section 7.6): not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline. Pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically - the commands below already use the historically correct flag for each condition.
 
 ```bash
 # AG News, DeepSeek-R1:7B: k=1 uses an independent n=1,000, unshuffled;
@@ -191,9 +191,9 @@ done
 
 Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; where used, the fixed seed (=42) is applied exactly once per dataset, before any model calls, purely to shuffle the sample (see the sampling-provenance note above for which conditions this actually applies to).
 
-Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — live in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/).
+Per-sample vote-count records for all 12 verified conditions - the exact data behind Tables 1 and 2 in the paper - live in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/).
 
-Run `python3 scripts/regenerate_all.py` to regenerate that scored data plus Tables 1 (accuracy Wilson CIs and ECE bootstrap CIs), 2 (full parser-failure/abstention decomposition), 5 (including k=1 baseline rows), and 7, directly from the raw votes with no hand-typed numbers anywhere downstream. For the paper's McNemar significance tests and Bonferroni-corrected threshold (Section 4.3, 7.5), run `python3 scripts/regenerate_significance.py`. ECE bootstrap CI *bounds* can differ from the manuscript's printed values by up to a few tenths of a percentage point on the smaller-N (k=3/5) conditions — re-running a 10,000-resample bootstrap with a different random draw is expected to shift the interval slightly. Every point estimate and every accuracy CI matches exactly (see the docstring in `regenerate_all.py`).
+Run `python3 scripts/regenerate_all.py` to regenerate that scored data plus Tables 1 (accuracy Wilson CIs and ECE bootstrap CIs), 2 (full parser-failure/abstention decomposition), 5 (including k=1 baseline rows), and 7, directly from the raw votes with no hand-typed numbers anywhere downstream. For the paper's McNemar significance tests and Bonferroni-corrected threshold (Section 4.3, 7.5), run `python3 scripts/regenerate_significance.py`. ECE bootstrap CI *bounds* can differ from the manuscript's printed values by up to a few tenths of a percentage point on the smaller-N (k=3/5) conditions - re-running a 10,000-resample bootstrap with a different random draw is expected to shift the interval slightly. Every point estimate and every accuracy CI matches exactly (see the docstring in `regenerate_all.py`).
 
 For a worked example of how released data is audited against a specific reviewer question, see [`AUDIT_APPLE_M3.md`](AUDIT_APPLE_M3.md), which documents the exact search commands and results used to verify that no released record references an "Apple M3" example a reviewer recalled from an earlier manuscript draft.
 
@@ -203,8 +203,8 @@ For a worked example of how released data is audited against a specific reviewer
 
 The paper originally scoped 18 conditions (6 dataset-model pairs x k in {1, 3, 5}). Two dataset-model pairs (6 conditions) were excluded after a post-hoc data-integrity audit and are **not** part of the verified results above:
 
-- **DBpedia x LLaMA-3.2** — the retained sample was drawn entirely from a single class (`Company`), making it non-representative.
-- **GoEmotions x LLaMA-3.2** — the retained per-sample record had every one of its 1,000 rows labeled `neutral`, inconsistent with GoEmotions' genuine ~26-28-label distribution.
+- **DBpedia x LLaMA-3.2** - the retained sample was drawn entirely from a single class (`Company`), making it non-representative.
+- **GoEmotions x LLaMA-3.2** - the retained per-sample record had every one of its 1,000 rows labeled `neutral`, inconsistent with GoEmotions' genuine ~26-28-label distribution.
 
 Both are flagged as open items for re-collection rather than reported with unverifiable numbers. See manuscript Section 7.6 (Limitations) and [`vote_records/reviewer_data_package/README.md`](vote_records/reviewer_data_package/README.md) for the full audit note; the raw (excluded) run files are kept in [`runs/`](runs/) for transparency.
 
@@ -229,7 +229,7 @@ llm_majority_vote_ollama/
 │   ├── datasets.py          # AG News, DBpedia, GoEmotions, LABR loaders
 │   ├── ollama_client.py     # local models via Ollama
 │   ├── openai_client.py     # OpenAI API (optional)
-│   ├── prompting.py         # zero-shot prompts — edit here to tune
+│   ├── prompting.py         # zero-shot prompts - edit here to tune
 │   └── utils.py
 ├── data/                    # custom CSV datasets
 ├── runs/                    # experiment outputs (CSV + logs); see runs/README.md
@@ -245,9 +245,9 @@ llm_majority_vote_ollama/
 | Problem | Fix |
 |---|---|
 | `Connection refused ... 11434` | Run `ollama serve` in a separate terminal |
-| Coverage = 0% | Model is writing explanations, not labels — tighten the prompt |
+| Coverage = 0% | Model is writing explanations, not labels - tighten the prompt |
 | Slow runs | Lower `--max-samples`, reduce `k`, or use a smaller model |
-| DeepSeek outputs look garbled, or `<think>` text leaks into predictions | Confirm `<think>` stripping is active in `ollama_client.py`, and that you haven't passed `--max-tokens` with a value too small to let the reasoning trace finish — leave it unset and let the per-model default apply |
+| DeepSeek outputs look garbled, or `<think>` text leaks into predictions | Confirm `<think>` stripping is active in `ollama_client.py`, and that you haven't passed `--max-tokens` with a value too small to let the reasoning trace finish - leave it unset and let the per-model default apply |
 
 ---
 
