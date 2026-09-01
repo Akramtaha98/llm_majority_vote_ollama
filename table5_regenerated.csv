@@ -1,0 +1,13 @@
+Model,k,Cov-Acc Gain(pp),Cov-ECE Gain(pp),Rel. Cost,Cov-Acc/Cost
+DeepSeek-R1:7B (AG News),1,N/A,N/A,1.0x,N/A
+DeepSeek-R1:7B (AG News),3,5.48,9.82,3.0x,1.8267
+DeepSeek-R1:7B (AG News),5,6.41,11.98,5.0x,1.282
+LLaMA-3.2:3B (AG News),1,N/A,N/A,1.0x,N/A
+LLaMA-3.2:3B (AG News),3,3.06,12.27,3.0x,1.02
+LLaMA-3.2:3B (AG News),5,2.78,13.07,5.0x,0.556
+DeepSeek-R1:7B (DBpedia),1,N/A,N/A,1.0x,N/A
+DeepSeek-R1:7B (DBpedia),3,2.2,-0.53,3.0x,0.7333
+DeepSeek-R1:7B (DBpedia),5,1.54,2.01,5.0x,0.308
+DeepSeek-R1:7B (GoEmotions),1,N/A,N/A,1.0x,N/A
+DeepSeek-R1:7B (GoEmotions),3,5.63,28.92,3.0x,1.8767
+DeepSeek-R1:7B (GoEmotions),5,11.93,39.19,5.0x,2.386

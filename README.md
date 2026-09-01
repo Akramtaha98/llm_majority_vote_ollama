@@ -157,7 +157,7 @@ Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **
 
 ## Reproducing the paper's results
 
-**Sampling-provenance note (post-submission audit; manuscript Section 7.5):** not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline; pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically. The commands below use the historically-correct flag for each condition.
+**Sampling-provenance note (post-submission audit; manuscript Section 7.6):** not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline; pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically. The commands below use the historically-correct flag for each condition.
 
 ```bash
 # AG News, DeepSeek-R1:7B: k=1 uses an independent n=1,000, unshuffled;

@@ -9,9 +9,13 @@ _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 # short-label response from a non-reasoning model, but silently truncates a reasoning
 # model's <think>...</think> trace before it ever reaches its final label, breaking
 # parsing on every DeepSeek-R1 call that would otherwise use the constructor default.
-# All results reported in the accompanying paper predate this fix (they passed an
-# explicit, sufficiently large max_tokens at the call site); this only changes behavior
-# for future runs that rely on the constructor default.
+# All results reported in the accompanying paper predate this fix for a stronger reason
+# than "used a large enough max_tokens": prior to commit 61408f18 (2026-09-01), this
+# client never forwarded max_tokens/num_predict to the Ollama API at all (the `options`
+# dict only ever set temperature/top_p/top_k/repeat_penalty/num_ctx), so generation was
+# unbounded rather than capped at any value, small or large. The max_tokens=8 default
+# that would break reasoning-model parsing only exists because that same commit started
+# forwarding it without a model-aware default; this change closes that gap.
 _REASONING_MODEL_SUBSTRINGS = ("deepseek", "-r1", "r1:")
 
 
