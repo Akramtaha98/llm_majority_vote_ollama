@@ -5,6 +5,28 @@ import requests
 # Strips a <think>...</think> reasoning trace (e.g. DeepSeek-R1) before label parsing.
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
+# BUGFIX (post-submission audit): a single small max_tokens default (8) is enough for a
+# short-label response from a non-reasoning model, but silently truncates a reasoning
+# model's <think>...</think> trace before it ever reaches its final label, breaking
+# parsing on every DeepSeek-R1 call that would otherwise use the constructor default.
+# All results reported in the accompanying paper predate this fix (they passed an
+# explicit, sufficiently large max_tokens at the call site); this only changes behavior
+# for future runs that rely on the constructor default.
+_REASONING_MODEL_SUBSTRINGS = ("deepseek", "-r1", "r1:")
+
+
+def _default_max_tokens(model: str) -> int:
+    """Per-model-family default generation length.
+
+    Reasoning models (e.g. DeepSeek-R1) need room for a <think>...</think> trace before
+    their final label; non-reasoning models (e.g. LLaMA-3.2) do not.
+    """
+    m = model.lower()
+    if any(s in m for s in _REASONING_MODEL_SUBSTRINGS):
+        return 1024
+    return 32
+
+
 class OllamaClient:
     def __init__(
         self,
@@ -14,7 +36,7 @@ class OllamaClient:
         top_k: int = 40,
         repeat_penalty: float = 1.1,
         num_ctx: int = 4096,
-        max_tokens: int = 8,
+        max_tokens: int | None = None,
         host: str = "http://localhost:11434",
     ):
         self.model = model
@@ -23,7 +45,7 @@ class OllamaClient:
         self.top_k = top_k
         self.repeat_penalty = repeat_penalty
         self.num_ctx = num_ctx
-        self.max_tokens = max_tokens
+        self.max_tokens = max_tokens if max_tokens is not None else _default_max_tokens(model)
         self.host = host.rstrip("/")
 
     def classify_once(self, system_prompt: str, user_prompt: str) -> str:
