@@ -13,7 +13,6 @@ set -euo pipefail
 N=200
 SEED=42
 TEMP=0.7
-MAXTOK=50
 MIN_ROWS=100
 
 mkdir -p runs
@@ -46,7 +45,6 @@ run_exp() {
         --max-samples "$N" \
         --seed "$SEED" \
         --temperature "$TEMP" \
-        --max-tokens "$MAXTOK" \
         --preds "$OUTFILE"
 }
 

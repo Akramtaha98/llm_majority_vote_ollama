@@ -60,7 +60,7 @@ caption in the manuscript exactly.
 
 LLaMA-3.2 on DBpedia and LLaMA-3.2 on GoEmotions are **not** included in
 `per_sample_vote_count_records/` because a post-hoc audit found each unreliable for a
-different reason (documented in the manuscript, Section 7.5): the DBpedia run sampled
+different reason (documented in the manuscript, Section 7.6): the DBpedia run sampled
 from a single class only, and the only retained GoEmotions record for LLaMA-3.2 assigns
 the same gold label to every row. Both conditions have been excluded from the paper's
 results rather than reported with unverifiable numbers. `FINAL_corrected_results_table.csv`

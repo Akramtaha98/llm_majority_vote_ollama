@@ -1,6 +1,6 @@
 """
 scripts/regenerate_significance.py -- Auditable reproduction of the paper's
-statistical-significance testing (Section 4.3 / 7.4) and the GoEmotions
+statistical-significance testing (Section 4.3 / 7.5) and the GoEmotions
 any-listed-gold-label sensitivity analysis (Section 4.1), directly from the
 released per-sample vote-count CSVs in
 vote_records/reviewer_data_package/per_sample_vote_count_records/.
@@ -10,7 +10,7 @@ to also reproduce:
   1. All 10 valid within-condition McNemar exact tests described in Section 4.3,
      including the pre-specified primary comparison (GoEmotions DeepSeek-R1:7B,
      k = 1 vs. k = 5) and the Bonferroni-corrected significance threshold used
-     in Section 7.4.
+     in Section 7.5.
   2. The GoEmotions any-listed-gold-label sensitivity analysis reported in
      Section 4.1 (macro-F1 / MCC computed against whichever gold label the
      prediction matches, not only the first-listed one).
@@ -51,7 +51,7 @@ MCNEMAR_PAIRS = [
     ("AG News DeepSeek-R1:7B", 3, 5, "ag_news_ollama_deepseek-r1-7b_k3.csv", "ag_news_ollama_deepseek-r1-7b_k5.csv"),
     # NOTE: AG News DeepSeek-R1:7B k = 1 is intentionally excluded from k = 1 vs. k = 3/5
     # comparisons -- its k = 1 baseline (n = 1,000) is not nested with the k = 3/5 sample
-    # (n = 300), so no valid paired McNemar test exists for those pairs (Section 4.3, 7.5).
+    # (n = 300), so no valid paired McNemar test exists for those pairs (Section 4.3, 7.6).
 ]
 
 N_MCNEMAR_TESTS = len(MCNEMAR_PAIRS)

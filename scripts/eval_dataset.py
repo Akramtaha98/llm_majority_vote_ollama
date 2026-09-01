@@ -32,13 +32,18 @@ def main():
     p.add_argument("--top-k", type=int, default=40)
     p.add_argument("--repeat-penalty", type=float, default=1.1)
     p.add_argument("--num-ctx", type=int, default=4096)
-    p.add_argument("--max-tokens", type=int, default=8)
+    p.add_argument("--max-tokens", type=int, default=None,
+                    help="Override the per-model-family generation-length default in "
+                         "OllamaClient (32 for standard models, 1024 for DeepSeek-R1 "
+                         "and other reasoning models -- see OllamaClient._default_max_tokens). "
+                         "Leave unset unless you have a specific reason to override it; "
+                         "an explicit value here always takes precedence over that logic.")
     p.add_argument("--max-samples", type=int, default=50)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-shuffle", action="store_true",
                     help="Disable the dataset-level shuffle and use an unshuffled, "
                          "first-N slice instead. A post-submission audit (manuscript "
-                         "Section 7.5) found that AG News DeepSeek-R1:7B at k = 1 and "
+                         "Section 7.6) found that AG News DeepSeek-R1:7B at k = 1 and "
                          "all AG News LLaMA-3.2:3B conditions in this paper's released "
                          "records were originally collected this way, not with the "
                          "shuffle; pass this flag to reproduce those specific conditions.")
@@ -55,7 +60,7 @@ def main():
     # split prior to slicing. It is unrelated to per-call generation randomness --
     # no generation seed is ever passed to the Ollama API (see OllamaClient). Not
     # every condition in this paper's released records was actually collected with
-    # this shuffle applied -- see Section 7.5 and --no-shuffle above.
+    # this shuffle applied -- see Section 7.6 and --no-shuffle above.
     random.seed(args.seed)
     do_shuffle = not args.no_shuffle
 
@@ -84,7 +89,10 @@ def main():
     else:
         if not HAS_OPENAI:
             raise RuntimeError("OpenAI client not available. Install 'openai' and set OPENAI_API_KEY.")
-        client = OpenAIClient(model=args.model, temperature=args.temperature, max_tokens=args.max_tokens)
+        client = OpenAIClient(
+            model=args.model, temperature=args.temperature,
+            max_tokens=args.max_tokens if args.max_tokens is not None else 4,
+        )
 
     preds: List[Optional[str]] = []
     confs: List[float] = []

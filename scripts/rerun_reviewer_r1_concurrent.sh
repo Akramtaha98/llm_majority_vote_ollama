@@ -3,7 +3,6 @@ set -euo pipefail
 REPS="${REPS:-2}"
 SEED=42
 TEMP=0.7
-MAXTOK=8
 OUTDIR="runs/reviewer_r1_reruns"
 mkdir -p "$OUTDIR"
 
@@ -18,7 +17,7 @@ run_exp() {
     python -m scripts.eval_dataset \
         --provider ollama --model "$MODEL" --dataset "$DATASET" \
         --k "$K" --max-samples "$N" --seed "$SEED" \
-        --temperature "$TEMP" --max-tokens "$MAXTOK" \
+        --temperature "$TEMP" \
         $SHUFFLE_FLAG --preds "$OUTFILE"
 }
 

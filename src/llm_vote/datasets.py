@@ -10,7 +10,7 @@ import pandas as pd
 # generation randomness (no generation seed is passed to the Ollama API -- see
 # ollama_client.py). NOT every condition in this paper's released records was
 # actually collected with shuffle=True -- a post-submission audit (manuscript
-# Section 7.5) found that AG News DeepSeek-R1:7B at k = 1 and all AG News
+# Section 7.6) found that AG News DeepSeek-R1:7B at k = 1 and all AG News
 # LLaMA-3.2:3B conditions were collected with shuffle=False (an unshuffled,
 # first-N slice), predating this shuffle's introduction into the pipeline. Pass
 # shuffle=False explicitly to reproduce those specific historical conditions.
@@ -37,7 +37,7 @@ def _slice_unshuffled(items: list, max_samples: int | None) -> list:
 
 
 def load_ag_news(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEED, shuffle: bool = True):
-    """A post-submission audit (manuscript Section 7.5) found that the historical
+    """A post-submission audit (manuscript Section 7.6) found that the historical
     per-sample records released with this paper were NOT all collected with the
     seed-42 shuffle below applied: AG News DeepSeek-R1:7B at k = 3 and k = 5 were
     drawn from the shuffled test split, but AG News DeepSeek-R1:7B at k = 1 and all
@@ -76,7 +76,7 @@ def load_goemotions(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_
     a change made upstream after this study's data collection, not by us. This
     loader instead uses the "simplified" config's "test" split, which retains the
     same fixed 28-category label set (27 emotions + neutral) and genuine
-    multi-label gold annotations. We verified directly (Section 7.5) that this
+    multi-label gold annotations. We verified directly (Section 7.6) that this
     substitute, shuffled with seed=42 and sliced to n=300, reproduces this paper's
     released GoEmotions per-sample record exactly, row for row -- so despite the
     upstream config change, the original GoEmotions sample selection remains
