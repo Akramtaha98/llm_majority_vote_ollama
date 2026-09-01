@@ -193,6 +193,8 @@ Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `to
 
 Per-sample vote-count records for all 12 verified conditions — the exact data behind Tables 1 and 2 in the paper — are in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/). Run `python3 scripts/regenerate_all.py` to regenerate that scored data and Tables 1 (with accuracy Wilson CIs and ECE bootstrap CIs), 2 (full parser-failure/abstention decomposition), 5 (including k=1 baseline rows), and 7 directly from the raw votes, with no hand-typed numbers anywhere downstream. ECE bootstrap CI *bounds* can differ from the manuscript's printed values by up to a few tenths of a percentage point on the smaller-N (k=3/5) conditions, since re-running a 10,000-resample bootstrap with a different random draw is expected to shift the interval slightly; every point estimate and the accuracy CIs match exactly (see the docstring in `regenerate_all.py`).
 
+For a worked example of how released data is audited against a specific reviewer question, see [`AUDIT_APPLE_M3.md`](AUDIT_APPLE_M3.md), which documents the exact search commands and results used to verify that no released record references an "Apple M3" example a reviewer recalled from an earlier manuscript draft.
+
 ---
 
 ## Excluded conditions
@@ -212,7 +214,8 @@ Both are flagged as open items for re-collection rather than reported with unver
 llm_majority_vote_ollama/
 ├── scripts/
 │   ├── eval_dataset.py        # main experiment runner
-│   ├── compute_results.py     # aggregate CSVs into summary tables
+│   ├── compute_results.py     # legacy ad-hoc aggregation (superseded by regenerate_all.py)
+│   ├── regenerate_all.py      # canonical script: regenerates Tables 1, 2, 5, 7 from raw votes
 │   ├── run_parallel.py        # parallelized batch runner
 │   └── make_plots.py          # generate figures from CSVs
 ├── src/llm_vote/
@@ -225,7 +228,8 @@ llm_majority_vote_ollama/
 │   └── utils.py
 ├── data/                        # custom CSV datasets
 ├── runs/                        # experiment outputs (CSV + logs)
-└── vote_records/                # per-sample vote-count records for the paper's 12 verified conditions
+├── vote_records/                # per-sample vote-count records for the paper's 12 verified conditions
+└── AUDIT_APPLE_M3.md            # provenance audit for a reviewer-flagged example (see above)
 ```
 
 ---
