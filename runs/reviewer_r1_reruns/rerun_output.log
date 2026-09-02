@@ -1,0 +1,66 @@
+nohup: ignoring input
+============================================================
+  Repeat 1 / 3  (4 groups running concurrently)
+============================================================
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k1_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k3_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k5_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k1_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k3_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k5_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k1_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k3_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k5_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k1_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k3_rep1.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k5_rep1.csv (already exists)
+  Repeat 1 complete.
+============================================================
+  Repeat 2 / 3  (4 groups running concurrently)
+============================================================
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k1_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k3_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k5_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k1_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k3_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k5_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k1_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k3_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k5_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k1_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k3_rep2.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k5_rep2.csv (already exists)
+  Repeat 2 complete.
+============================================================
+  Repeat 3 / 3  (4 groups running concurrently)
+============================================================
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k1_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k3_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_llama3.2_k5_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k1_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k3_rep3.csv (already exists)
+  RUN   ag_news_deepseek_matched / k=5 / rep=3  ->  runs/reviewer_r1_reruns/ag_news_deepseek_matched_k5_rep3.csv
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k1_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/dbpedia_deepseek_k3_rep3.csv (already exists)
+  RUN   dbpedia_deepseek / k=5 / rep=3  ->  runs/reviewer_r1_reruns/dbpedia_deepseek_k5_rep3.csv
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k1_rep3.csv (already exists)
+  SKIP  runs/reviewer_r1_reruns/goemotions_deepseek_k3_rep3.csv (already exists)
+  RUN   goemotions_deepseek / k=5 / rep=3  ->  runs/reviewer_r1_reruns/goemotions_deepseek_k5_rep3.csv
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/llm_majority_vote_ollama/scripts/eval_dataset.py", line 4, in <module>
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/llm_majority_vote_ollama/scripts/eval_dataset.py", line 4, in <module>
+    from tqdm import tqdm
+ModuleNotFoundError: No module named 'tqdm'
+    from tqdm import tqdm
+ModuleNotFoundError: No module named 'tqdm'
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/llm_majority_vote_ollama/scripts/eval_dataset.py", line 4, in <module>
+    from tqdm import tqdm
+ModuleNotFoundError: No module named 'tqdm'
