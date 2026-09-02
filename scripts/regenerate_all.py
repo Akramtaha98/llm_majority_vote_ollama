@@ -13,18 +13,34 @@ applying:
   - ECE 95% CIs: nonparametric bootstrap, 10,000 resamples (Section 4.3, Table 1 caption)
   - Table 2's Full-Parse Split / Capped: Insufficient / Split: Sufficient / Covered w/
     Partial Parse decomposition, derived from each sample's n_parsed = sum(votes.values())
+  - Table 7's AURC and Figure 7's risk-coverage curves: computed only over the
+    achievable SC confidence thresholds actually present in the valid-parsed
+    population for each condition (no arbitrary tie-ordering -- every sample at
+    the same confidence value is one indivisible step of the curve, never split
+    into separate points by row order). The highest-confidence bucket's risk is
+    held flat down to coverage 0, and AURC is the trapezoidal area under the
+    resulting curve over the full [0, 1] coverage domain. At k=1 every sample
+    has identical confidence, so there is exactly one achievable point and AURC
+    reduces to that point's risk, which equals ECE by construction -- this is
+    checked as an assertion, not just documented. See Section 7.4 and the
+    Table 7 / Figure 7 captions in the manuscript for the full methodology
+    description and the post-submission audit that found and fixed the
+    previous, tie-order-dependent version of this computation.
 No numbers are hand-typed anywhere downstream of this script; Tables 1, 2, 5, and 7
-are derived entirely from the per-sample vote-count records.
+and Figure 7 are derived entirely from the per-sample vote-count records.
 
-Usage: python3 regenerate_all.py [--data-dir DIR]
+Usage: python3 regenerate_all.py [--data-dir DIR] [--out-dir DIR]
 Default --data-dir is vote_records/reviewer_data_package/per_sample_vote_count_records/
-relative to the repository root.
+relative to the repository root. Figure 7 is written to <out-dir>/figure7_risk_coverage.png.
 """
 import argparse
 import json
 import math
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from pathlib import Path
 from sklearn.metrics import f1_score, matthews_corrcoef
 
@@ -296,8 +312,45 @@ def build_table5(table1_df):
     return pd.DataFrame(rows)
 
 
+def risk_coverage_curve(valid_sc):
+    """Achievable-threshold risk-coverage curve for one condition's valid-parsed
+    population. Returns a list of dicts (threshold, coverage_of_valid, risk),
+    sorted by ascending coverage, using only confidence values actually present
+    in the data -- no interpolation or sub-ordering within a tied-confidence
+    group. Raises if the population is empty."""
+    n_valid = len(valid_sc)
+    assert n_valid > 0, "risk_coverage_curve called on empty valid-parsed population"
+    thresholds = sorted(valid_sc["confidence_sc"].unique(), reverse=True)
+    points = []
+    for t in thresholds:
+        covered = valid_sc[valid_sc["confidence_sc"] >= t - 1e-9]
+        acc = covered["sc_correct"].mean()
+        points.append(dict(threshold=float(t), coverage_of_valid=len(covered) / n_valid,
+                            risk=1.0 - float(acc)))
+    assert abs(points[-1]["coverage_of_valid"] - 1.0) < 1e-9
+    for i in range(1, len(points)):
+        assert points[i]["coverage_of_valid"] > points[i - 1]["coverage_of_valid"]
+    return points
+
+
+def compute_aurc(points):
+    """Trapezoidal AURC over [0, 1]: the first achievable point's risk is held
+    flat down to coverage 0 (samples in the top confidence bucket are mutually
+    indistinguishable, so a random sub-fraction has the same expected risk as
+    the whole bucket), then integrated through every achievable point up to
+    coverage 1. At k=1 (a single achievable point) this reduces to that
+    point's risk, which must equal ECE -- see the assertion in build_table7."""
+    cov = [0.0] + [p["coverage_of_valid"] for p in points]
+    risk = [points[0]["risk"]] + [p["risk"] for p in points]
+    area = 0.0
+    for i in range(1, len(cov)):
+        area += (cov[i] - cov[i - 1]) * (risk[i - 1] + risk[i]) / 2.0
+    return area * 100.0  # percent
+
+
 def build_table7(all_data):
     rows = []
+    curves = {}  # (ds, model, k) -> achievable-point list, reused by build_figure7
     for (ds, model, k), d in sorted(all_data.items()):
         covered_mmv = d[d["mmv_pred"] != "ABSTAIN"]
         mmv_acc = 100 * covered_mmv["mmv_correct"].mean() if len(covered_mmv) else 0.0
@@ -309,12 +362,71 @@ def build_table7(all_data):
         sc_ece = 100 * ece(valid_sc["confidence_sc"], valid_sc["sc_correct"], 15) if len(valid_sc) else 0.0
         sc_valid_out = 100 * len(valid_sc) / len(d)
 
+        points = risk_coverage_curve(valid_sc)
+        curves[(ds, model, k)] = points
+        aurc = compute_aurc(points)
+        if k == 1:
+            # k=1: exactly one achievable point; AURC must equal ECE by construction.
+            assert len(points) == 1, f"{ds}/{model}/k=1 has {len(points)} achievable points, expected 1"
+            assert abs(aurc - sc_ece) < 1e-6, f"{ds}/{model}/k=1: AURC ({aurc}) != ECE ({sc_ece})"
+
+        # SC accuracy restricted to MMV's own matched-coverage subset; identical
+        # to MMV's accuracy by construction (MMV/SC predictions coincide on
+        # every sample MMV covers -- see Section 7.4).
+        sc_acc_matched = mmv_acc
+
         rows.append(dict(Dataset=ds, Model=model, k=k,
-                          **{"MMV Acc(%)": round(mmv_acc, 2), "MMV ECE(%)": round(mmv_ece, 2),
-                             "MMV Cov(%)": round(mmv_cov, 2), "SC Acc(%)": round(sc_acc, 2),
+                          **{"MMV Acc(%)": round(mmv_acc, 2), "MMV Cov(%)": round(mmv_cov, 2),
+                             "SC Acc (matched cov.)(%)": round(sc_acc_matched, 2),
+                             "SC Acc (full cov.)(%)": round(sc_acc, 2),
                              "SC ECE(%)": round(sc_ece, 2), "SC Valid-Output(%)": round(sc_valid_out, 2),
-                             "SC Vote Cov(%)": 100.00}))
-    return pd.DataFrame(rows)
+                             "AURC (SC,%)": round(aurc, 2)}))
+    return pd.DataFrame(rows), curves
+
+
+def build_figure7(curves, out_path):
+    """Regenerate Figure 7 from the achievable-point curves computed in
+    build_table7. Same 2x2 panel layout (grouped by dataset/model, color=k,
+    MMV's operating point marked with a star) as the manuscript figure."""
+    panels = [
+        ("AG News", "DeepSeek-R1:7B", "AG News / DeepSeek-R1:7B"),
+        ("AG News", "LLaMA-3.2:3B", "AG News / LLaMA-3.2:3B"),
+        ("DBpedia", "DeepSeek-R1:7B", "DBpedia / DeepSeek-R1:7B"),
+        ("GoEmotions", "DeepSeek-R1:7B", "GoEmotions / DeepSeek-R1:7B"),
+    ]
+    colors = {1: "#1b9e77", 3: "#d95f02", 5: "#7570b3"}
+    majority_threshold = {1: None, 3: 0.6667, 5: 0.6000}
+
+    fig, axes = plt.subplots(2, 2, figsize=(11, 9))
+    axes = axes.flatten()
+    for ax, (dataset, model, title) in zip(axes, panels):
+        for k in (1, 3, 5):
+            key = (dataset, model, k)
+            if key not in curves:
+                continue
+            pts = curves[key]
+            cov = [0.0] + [p["coverage_of_valid"] for p in pts]
+            risk = [pts[0]["risk"]] + [p["risk"] for p in pts]
+            ax.plot(cov, risk, color=colors[k], linewidth=1.8, marker="o", markersize=4,
+                    label=f"SC risk-coverage curve (k={k})")
+            if k == 1:
+                mmv_cov, mmv_risk = 1.0, pts[0]["risk"]
+            else:
+                match = min(pts, key=lambda p: abs(p["threshold"] - majority_threshold[k]))
+                mmv_cov, mmv_risk = match["coverage_of_valid"], match["risk"]
+            ax.scatter([mmv_cov], [mmv_risk], color=colors[k], marker="*", s=220,
+                       edgecolor="black", linewidth=0.8, zorder=5,
+                       label=f"MMV operating point (k={k})")
+        ax.set_title(title)
+        ax.set_xlabel("Coverage (of valid-parsed population)")
+        ax.set_ylabel("Risk (1 - Accuracy)")
+        ax.set_xlim(-0.02, 1.02)
+        ax.set_ylim(bottom=0)
+        ax.legend(fontsize=8, loc="best")
+        ax.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close(fig)
 
 
 def main():
@@ -329,7 +441,7 @@ def main():
     t1 = build_table1(all_data)
     t2 = build_table2(all_data)
     t5 = build_table5(t1)
-    t7 = build_table7(all_data)
+    t7, curves = build_table7(all_data)
 
     print("=== Table 1: Results across 12 verified experimental conditions ===")
     print(t1.to_string(index=False))
@@ -348,8 +460,11 @@ def main():
     for (ds, model, k), d in all_data.items():
         fname = f"{ds}_{model}_{k}.csv".replace(" ", "_").replace(":", "-").replace("/", "-")
         d.to_csv(out / f"per_sample_regenerated_{fname}", index=False)
+
+    fig_path = out / "figure7_risk_coverage.png"
+    build_figure7(curves, fig_path)
     print(f"\nSaved table1_regenerated.csv, table2_regenerated.csv, table5_regenerated.csv, "
-          f"table7_regenerated.csv, and 12 per-sample regenerated CSVs to {out.resolve()}")
+          f"table7_regenerated.csv, 12 per-sample regenerated CSVs, and {fig_path.name} to {out.resolve()}")
 
 
 if __name__ == "__main__":
