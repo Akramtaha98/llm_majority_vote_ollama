@@ -3,8 +3,9 @@
 raw per-sample repeat-run records in runs/reviewer_r1_reruns/, plus the original
 per-sample vote-count records (for GoEmotions multi-label gold crediting).
 
-Reproduces Table 8's Rep 1 / Rep 2 accuracy columns exactly (cross-checked against the
-manuscript) and produces Table 9's coverage / ECE / Macro-F1 / MCC columns in full.
+Reproduces Table 8's Rep 1 / Rep 2 / Rep 3 accuracy columns exactly (cross-checked against
+the manuscript) and produces all 36 rows (12 conditions x 3 repeats) of Table 9's
+coverage / ECE / Macro-F1 / MCC columns in full.
 
 Usage:
     python3 scripts/compute_repeat_metrics.py \
@@ -99,7 +100,13 @@ def process_condition(path: str, labels: list[str], gold_multi_map: dict | None)
         corrects.append(correct)
         if pred is not None:
             y_pred_f1.append(pred)
-            y_true_f1.append(r["gold"])  # first-listed gold, matching Table 1's convention
+            # Some rep1/rep2 GoEmotions files store the full pipe-joined multi-label
+            # string (e.g. "joy|optimism") in the 'gold' column for a subset of rows,
+            # rather than only the first-listed label; splitting on '|' and taking the
+            # first element recovers the correct first-listed label in every case
+            # (verified: 0 mismatches against the clean, uncontaminated rep3 'gold'
+            # column for the same sample ids), matching regenerate_3rep.py's convention.
+            y_true_f1.append(str(r["gold"]).split("|")[0])
     covered = [i for i, p in enumerate(preds) if p is not None]
     n_total, n_cov = len(df), len(covered)
     return dict(
@@ -135,7 +142,7 @@ def main():
     print(header)
     for dataset, model, k, prefix, labels, is_multi in CONDITIONS:
         gm = goemo_gm_map if is_multi else None
-        for rep in (1, 2):
+        for rep in (1, 2, 3):
             path = os.path.join(args.reruns_dir, f"{prefix}_rep{rep}.csv")
             res = process_condition(path, labels, gm)
             rows.append(dict(dataset=dataset, model=model, k=k, rep=rep, **res))
