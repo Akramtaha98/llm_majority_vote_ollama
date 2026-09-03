@@ -149,13 +149,34 @@ Each run writes a CSV to `runs/`, e.g. `runs/ag_news_ollama_deepseek-r1-7b_k5.cs
 | `confidence` | `top_votes / K`, in [0, 1] |
 | `correct` | 1 if the prediction matches gold, 0 otherwise |
 
-Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **MCC**, **ECE** (15-bin), **coverage**. `eval_dataset.py` doesn't itself print confidence intervals; accuracy Wilson-score CIs and ECE bootstrap CIs (10,000 resamples) are computed by `scripts/regenerate_all.py` from the saved per-sample CSVs (see below), matching how they're computed for the paper's Table 1.
+Printed metrics: **accuracy** (on covered/non-abstained items), **Macro-F1**, **MCC**, **ECE** (15-bin), **coverage**. `eval_dataset.py` doesn't itself print confidence intervals; accuracy Wilson-score CIs and ECE bootstrap CIs (10,000 resamples) can be computed from a single run's saved per-sample CSV by `scripts/regenerate_all.py`, but this is no longer how the paper's Table 1 reports uncertainty: Table 1 now uses Mean(3) +/- SD(3) across three independent post-fix repeats per condition, computed by `scripts/regenerate_3rep.py` (see "Reproducing the paper's results" below). The single-run Wilson/bootstrap CIs remain available as a diagnostic for a one-off run outside the paper's own repeat-based methodology.
 
 > **Coverage stuck near 0%?** The model is outputting free text instead of exact labels. Tighten the prompt: *"Respond with only one word from: {label_list}. No explanation."*
 
 ---
 
 ## Reproducing the paper's results
+
+**One-command reproduction of every table and figure from the released data** (no LLM
+calls, seconds to run): `bash scripts/reproduce_paper.sh [OUT_DIR]`. This single driver
+runs the six scripts below in order and prints a table/figure -> script mapping before it
+starts, so it is no longer necessary to know which of the six scripts produces which
+result. Outputs land in `OUT_DIR` (default `outputs/regenerated/`), except Figure 6,
+which the underlying script always writes to `out_figs/`.
+
+| Result | Script |
+|---|---|
+| Table 1, 2, 5, 7; Figure 7 | `scripts/regenerate_3rep.py` |
+| Figures 2, 3, 4, 5 | `scripts/make_figures_3rep.py` |
+| Table 8, Table 9 | `scripts/compute_repeat_metrics.py` |
+| Table 4 (CV-HB calibration) | `scripts/regenerate_table4_cvhb.py` |
+| Figure 6 (confusion matrix) | `scripts/regenerate_figure6.py` |
+| McNemar / Bonferroni significance tests | `scripts/regenerate_significance_3rep.py` |
+| Single-run diagnostic (pre-fix or any one run; not the paper's reported numbers) | `scripts/regenerate_all.py` |
+
+To regenerate the *raw* per-sample records these six scripts read (i.e. to re-run the
+model rather than just recompute statistics from already-released data), see the
+per-condition commands below.
 
 **Sampling-provenance note** (post-submission audit; manuscript Section 7.6): not every condition below was originally collected with the seed-42 shuffle applied. AG News DeepSeek-R1:7B at k = 3 and k = 5, DBpedia (all k), and GoEmotions (all k) were shuffled as described below. AG News DeepSeek-R1:7B at k = 1 and all three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were instead collected from an unshuffled, first-N slice, predating the shuffle's introduction into this pipeline. Pass `--no-shuffle` to `eval_dataset.py` to reproduce those four conditions specifically - the commands below already use the historically correct flag for each condition.
 

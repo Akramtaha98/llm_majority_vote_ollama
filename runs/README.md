@@ -25,10 +25,28 @@ here for transparency but are not the source of any reported statistic; see
 
 ## `reviewer_r1_reruns/`
 
-24 files (12 verified conditions x 2 independent repeats), produced by
-`scripts/rerun_reviewer_r1_concurrent.sh` in response to reviewer feedback. Used to
-compute Table 8 (accuracy, Rep1/Rep2) and Table 9 (coverage, ECE, Macro-F1, MCC) via
+36 files (12 verified conditions x 3 independent repeats), produced by
+`scripts/rerun_reviewer_r1_concurrent.sh` (rep1/rep2) and a third GPU rerun (rep3) in
+response to reviewer feedback. All three repeats were collected under the fixed
+`num_predict` client (see the top-level README's Reproducing section). Used to compute
+Table 1 (Mean(3) +/- SD(3)), Table 2, Table 5, Table 7, and Figures 2-5, 7 via
+`scripts/regenerate_3rep.py` / `scripts/make_figures_3rep.py`, and Table 8
+(accuracy, Rep1/Rep2/Rep3) and Table 9 (coverage, ECE, Macro-F1, MCC, all 36 rows) via
 `scripts/compute_repeat_metrics.py`.
+
+**Schema note: `gold_multi` is not present in every file.** Only the 12 `*_rep3.csv`
+files carry a `gold_multi` column (a later `eval_dataset.py` version); the 24 `*_rep1.csv`
+/ `*_rep2.csv` files do not have this column at all. For the single-label datasets (AG
+News, DBpedia) this is harmless -- `gold_multi` equals `gold` there, and both
+`regenerate_3rep.py` and `compute_repeat_metrics.py` fall through to `gold` when the
+column is missing. For GoEmotions, which is natively multi-label, falling through to
+`gold` (the single first-listed label) instead of the true multi-label set would
+under-credit any prediction that matches a secondary gold label but not the first-listed
+one; both scripts instead recover the correct multi-label gold for every GoEmotions
+rep1/rep2 row from the original per-sample vote-count records in
+`vote_records/reviewer_data_package/per_sample_vote_count_records/` (which do carry a
+correct `gold_multi` for every row, all k), keyed by sample `id`, exactly matching rep3's
+own values where both are available.
 
 ## Related
 

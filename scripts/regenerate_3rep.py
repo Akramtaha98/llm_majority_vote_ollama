@@ -48,7 +48,36 @@ REP_CONDITIONS = {
 }
 
 
-def _repair_gold_multi(src_path, tmp_dir):
+def _load_goemo_multi_map(vote_dir):
+    """GoEmotions is natively multi-label, but only the rep3 rerun files carry a
+    gold_multi column at all -- rep1/rep2 have no such column, so
+    process_condition's r.get("gold_multi", r["gold"]) silently falls through to
+    the single first-listed gold label for those two reps. That is the correct
+    fallback for the single-label datasets (AG News, DBpedia), where gold_multi
+    equals gold anyway, but it is wrong for GoEmotions: it under-credits any MMV
+    prediction that matches a secondary gold label but not the first-listed one,
+    for 2 of every 3 repeats. This was caught by an independent recomputation
+    that found regenerate_3rep.py's own GoEmotions k=3 ECE (43.56%, mean of 3
+    reps) did not match compute_repeat_metrics.py's independently-verified value
+    for the same quantity, even though both scripts are supposed to compute
+    identical Table 1 statistics; both actually agree at 43.56% once this map is
+    applied, matching the manuscript's Section 7.4 prose exactly. Recovers the
+    true multi-label gold set for every GoEmotions sample id from the original
+    per-sample vote-count records (which do carry a correct gold_multi column
+    for every row, all three k), exactly as compute_repeat_metrics.py already
+    does for Table 9."""
+    import pandas as pd
+    m = {}
+    for k in (1, 3, 5):
+        gp = Path(vote_dir) / f"goemotions_ollama_deepseek-r1-7b_k{k}.csv"
+        if gp.exists():
+            dfo = pd.read_csv(gp)
+            for _, r in dfo.iterrows():
+                m[r["id"]] = r["gold_multi"]
+    return m
+
+
+def _repair_gold_multi(src_path, tmp_dir, goemo_map=None):
     """Some rep3 files carry an extra gold_multi column that is entirely NaN
     for single-label datasets (AG News, DBpedia) -- a benign schema drift from
     a later eval_dataset.py version, confirmed by spot-check: where gold_multi
@@ -57,11 +86,23 @@ def _repair_gold_multi(src_path, tmp_dir):
     itself (not the fallback) when the column exists but is null, silently
     corrupting every correctness check in that file. Fix: fill any null
     gold_multi with the row's own gold value before handing off to
-    process_condition, matching rep1/rep2 files (which have no gold_multi
-    column at all and so correctly fall through to gold)."""
+    process_condition. For GoEmotions rep1/rep2 files, which have no gold_multi
+    column at all, falling through to gold would silently under-credit
+    multi-label matches (see _load_goemo_multi_map); when goemo_map is
+    provided and the file is a GoEmotions file lacking gold_multi, inject the
+    correct multi-label gold from that map instead of leaving the fallback to
+    process_condition."""
     import pandas as pd
     df = pd.read_csv(src_path)
-    if "gold_multi" in df.columns:
+    is_goemotions = src_path.name.startswith("goemotions_")
+    if "gold_multi" not in df.columns and is_goemotions and goemo_map:
+        df["gold_multi"] = df["id"].map(goemo_map)
+        n_missing = df["gold_multi"].isna().sum()
+        df["gold_multi"] = df["gold_multi"].fillna(df["gold"])
+        print(f"  [repair] {src_path.name}: injected gold_multi from original vote-count "
+              f"records for {len(df) - n_missing}/{len(df)} rows ({n_missing} id(s) not found, "
+              f"fell back to single-label gold)")
+    elif "gold_multi" in df.columns:
         n_null_before = df["gold_multi"].isna().sum()
         df["gold_multi"] = df["gold_multi"].fillna(df["gold"])
         if n_null_before:
@@ -71,16 +112,17 @@ def _repair_gold_multi(src_path, tmp_dir):
     return out_path
 
 
-def load_all_reps(data_dir):
+def load_all_reps(data_dir, vote_dir="vote_records/reviewer_data_package/per_sample_vote_count_records"):
     import tempfile
     out = {}
     tmp_dir = tempfile.mkdtemp(prefix="regen3rep_repaired_")
+    goemo_map = _load_goemo_multi_map(vote_dir)
     for (ds, model, k), (stem, labels) in REP_CONDITIONS.items():
         reps = []
         for rep in (1, 2, 3):
             fpath = Path(data_dir) / f"{stem}_k{k}_rep{rep}.csv"
             assert fpath.exists(), f"missing {fpath}"
-            repaired = _repair_gold_multi(fpath, tmp_dir)
+            repaired = _repair_gold_multi(fpath, tmp_dir, goemo_map=goemo_map)
             reps.append(ra.process_condition(repaired, k, labels))
         out[(ds, model, k)] = reps
     return out
