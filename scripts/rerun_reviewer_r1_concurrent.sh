@@ -4,7 +4,13 @@ REPS="${REPS:-2}"
 SEED=42
 TEMP=0.7
 OUTDIR="runs/reviewer_r1_reruns"
+TIMING_LOG="${OUTDIR}/timing.log"
 mkdir -p "$OUTDIR"
+
+fmt_hms() {
+    local T="$1"
+    printf '%02dh:%02dm:%02ds' $((T/3600)) $(((T%3600)/60)) $((T%60))
+}
 
 run_exp() {
     local MODEL="$1" DATASET="$2" K="$3" N="$4" SHUFFLE_FLAG="$5" TAG="$6" REP="$7"
@@ -13,12 +19,19 @@ run_exp() {
         echo "  SKIP  $OUTFILE (already exists)"
         return
     fi
-    echo "  RUN   $TAG / k=$K / rep=$REP  ->  $OUTFILE"
+    local START_TS START_HUMAN ELAPSED
+    START_TS=$(date +%s)
+    START_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "  RUN   $TAG / k=$K / rep=$REP  ->  $OUTFILE   [started $START_HUMAN]"
     python -m scripts.eval_dataset \
         --provider ollama --model "$MODEL" --dataset "$DATASET" \
         --k "$K" --max-samples "$N" --seed "$SEED" \
         --temperature "$TEMP" \
-        $SHUFFLE_FLAG --preds "$OUTFILE"
+        $SHUFFLE_FLAG --save-raw-outputs --preds "$OUTFILE"
+    ELAPSED=$(( $(date +%s) - START_TS ))
+    local LINE="  DONE  $TAG / k=$K / rep=$REP  ->  $OUTFILE   [took $(fmt_hms $ELAPSED)]"
+    echo "$LINE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S')  $TAG k=$K rep=$REP  ${ELAPSED}s  $(fmt_hms $ELAPSED)" >> "$TIMING_LOG"
 }
 
 run_group_ag_news_deepseek() {
@@ -49,9 +62,12 @@ run_group_ag_news_llama() {
     run_exp "llama3.2" "ag_news" 5 1000 "--no-shuffle" "ag_news_llama3.2" "$REP"
 }
 
+SCRIPT_START_TS=$(date +%s)
+
 for REP in $(seq 1 "$REPS"); do
+    REP_START_TS=$(date +%s)
     echo "============================================================"
-    echo "  Repeat $REP / $REPS  (4 groups running concurrently)"
+    echo "  Repeat $REP / $REPS  (4 groups running concurrently)   [started $(date '+%Y-%m-%d %H:%M:%S')]"
     echo "============================================================"
 
     run_group_ag_news_llama "$REP" &
@@ -64,11 +80,16 @@ for REP in $(seq 1 "$REPS"); do
     PID_GOEMOTIONS=$!
 
     wait "$PID_LLAMA" "$PID_AGNEWS" "$PID_DBPEDIA" "$PID_GOEMOTIONS"
-    echo "  Repeat $REP complete."
+    REP_ELAPSED=$(( $(date +%s) - REP_START_TS ))
+    echo "  Repeat $REP complete.   [took $(fmt_hms $REP_ELAPSED)]"
+    echo "$(date '+%Y-%m-%d %H:%M:%S')  REPEAT_${REP}_TOTAL  ${REP_ELAPSED}s  $(fmt_hms $REP_ELAPSED)" >> "$TIMING_LOG"
 done
 
+TOTAL_ELAPSED=$(( $(date +%s) - SCRIPT_START_TS ))
 echo ""
 echo "============================================================"
 echo "  All reruns complete. Results in: $OUTDIR"
+echo "  Total wall time this invocation: $(fmt_hms $TOTAL_ELAPSED)"
+echo "  Per-run timing log: $TIMING_LOG"
 echo "  Next: tar czf reviewer_r1_reruns.tar.gz $OUTDIR"
 echo "============================================================"
