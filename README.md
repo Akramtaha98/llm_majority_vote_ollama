@@ -32,16 +32,16 @@ This repository is the reference implementation for *Minimal Majority Vote Ensem
 
 ## Key results
 
-Verified results across the **12 audited conditions** reported in the paper (4 dataset-model pairs x k in {1, 3, 5}).
+Verified results across the **12 audited conditions** reported in the paper (4 dataset-model pairs x k in {1, 3, 5}), each the mean of three independent post-fix repeats (Table 1).
 
 | Dataset | Model | k=1 Acc | Best Acc | k=1 ECE | Best ECE |
 |---|---|---|---|---|---|
-| AG News | DeepSeek-R1:7B | 77.74% | **84.15%** (k=5) | 22.26% | **10.28%** (k=5) |
-| AG News | LLaMA-3.2:3B | 62.25% | **65.31%** (k=3) | 37.75% | **24.68%** (k=5) |
-| DBpedia | DeepSeek-R1:7B | 93.36% | **95.56%** (k=3) | 6.64% | **4.63%** (k=5) |
-| GoEmotions | DeepSeek-R1:7B | 26.19% | **38.12%** (k=5) | 73.81% | **34.62%** (k=5) |
+| AG News | DeepSeek-R1:7B | 80.39% | **83.05%** (k=5) | 19.61% | **10.57%** (k=5) |
+| AG News | LLaMA-3.2:3B | 61.73% | **65.04%** (k=5) | 38.27% | **24.37%** (k=5) |
+| DBpedia | DeepSeek-R1:7B | 89.98% | **94.65%** (k=5) | 10.02% | **2.94%** (k=3) |
+| GoEmotions | DeepSeek-R1:7B | 26.72% | **39.64%** (k=5) | 73.28% | **34.97%** (k=5) |
 
-95% bootstrap CIs for every ECE value are reported in the paper's Table 1. The cost-effective ensemble size is task-dependent, not universal. **k = 3** is a strong default on near-ceiling, well-separated tasks (AG News, DBpedia); harder, higher-cardinality tasks like GoEmotions keep gaining accuracy through **k = 5**. See the paper's Cost-Benefit Analysis (Section 7.3) for the full picture, including why the GoEmotions gain is coverage-conditioned rather than a free lunch.
+Mean +/- SD across three independent post-fix repeats for every accuracy and ECE value is reported in the paper's Table 1 (Section 4.3); the original single-run bootstrap/Wilson-interval CIs remain the basis for the significance testing discussed in Section 7.5, not for Table 1 itself. Note DBpedia's best ECE is at **k = 3**, not k = 5 - ECE falls sharply from k=1 to k=3 then rises very slightly at k=5 (Section 5.2). The cost-effective ensemble size is task-dependent, not universal. **k = 3** is a strong default on near-ceiling, well-separated tasks (AG News, DBpedia); harder, higher-cardinality tasks like GoEmotions keep gaining accuracy through **k = 5**. See the paper's Cost-Benefit Analysis (Section 7.3) for the full picture, including why the GoEmotions gain is coverage-conditioned rather than a free lunch.
 
 ---
 
@@ -191,9 +191,20 @@ done
 
 Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `top_k=40`, `repeat_penalty=1.1`, `context_window=4096`. No generation seed is passed to any per-call request; where used, the fixed seed (=42) is applied exactly once per dataset, before any model calls, purely to shuffle the sample (see the sampling-provenance note above for which conditions this actually applies to).
 
-Per-sample vote-count records for all 12 verified conditions - the exact data behind Tables 1 and 2 in the paper - live in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/).
+**Table 1 and everything derived from it are now built from a 3-repeat post-fix dataset, not the original single-run data described above.** Between the original data collection and these repeats we fixed a client-side generation-length bug that had been silently truncating DeepSeek-R1:7B's reasoning trace (see [Troubleshooting](#troubleshooting)); the commands above still describe the original, pre-fix single-run collection procedure and remain useful for understanding the codebase's sampling logic, but they are no longer what Table 1 reports.
 
-Run `python3 scripts/regenerate_all.py` to regenerate that scored data plus Tables 1 (accuracy Wilson CIs and ECE bootstrap CIs), 2 (full parser-failure/abstention decomposition), 5 (including k=1 baseline rows), and 7, directly from the raw votes with no hand-typed numbers anywhere downstream. For the paper's McNemar significance tests and Bonferroni-corrected threshold (Section 4.3, 7.5), run `python3 scripts/regenerate_significance.py`. ECE bootstrap CI *bounds* can differ from the manuscript's printed values by up to a few tenths of a percentage point on the smaller-N (k=3/5) conditions - re-running a 10,000-resample bootstrap with a different random draw is expected to shift the interval slightly. Every point estimate and every accuracy CI matches exactly (see the docstring in `regenerate_all.py`).
+The 36 raw per-sample repeat-run records (12 conditions x 3 independent repeats, all collected under the fixed client) live in [`runs/reviewer_r1_reruns/`](runs/reviewer_r1_reruns/); see [`runs/README.md`](runs/README.md). The following scripts regenerate the current, post-fix paper directly from these records, with no hand-typed numbers anywhere downstream:
+
+- `python3 scripts/regenerate_3rep.py` - Tables 1, 2, 5, 7 (reuses `regenerate_all.py`'s own MMV/SC/ECE/AURC logic rather than reimplementing it).
+- `python3 scripts/make_figures_3rep.py` - Figures 2, 3, 4, 5.
+- `python3 scripts/compute_repeat_metrics.py` - Table 8 (accuracy per repeat) and Table 9 in full (coverage/ECE/Macro-F1/MCC, all 36 rows).
+- `python3 scripts/regenerate_table4_cvhb.py` - Table 4 (5-fold cross-validated histogram-binning calibration, seed=42, pooled across the three repeats).
+- `python3 scripts/regenerate_figure6.py` - Figure 6 (confusion matrix, pooled across the three repeats).
+- `python3 scripts/regenerate_significance_3rep.py` - the paper's McNemar significance tests and Bonferroni-corrected threshold (Section 4.3, 7.5), re-derived separately per repeat (36 tests: 12 within-condition comparisons x 3 repeats) rather than pooled, since the three repeats are non-independent draws over the same matched samples.
+
+Per-sample vote-count records for the original single-run collection - the exact data behind the pre-fix `regenerate_all.py`/`regenerate_significance.py` scripts below - live in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/).
+
+`python3 scripts/regenerate_all.py` and `python3 scripts/regenerate_significance.py` remain in the repository and still reproduce the *original, pre-fix* single-run Tables 1/2/5/7 and the original 10-test McNemar/Bonferroni analysis exactly as originally submitted; they are retained for provenance and are reused internally by the 3-rep scripts above, but they no longer describe what the current manuscript reports.
 
 For a worked example of how released data is audited against a specific reviewer question, see [`AUDIT_APPLE_M3.md`](AUDIT_APPLE_M3.md), which documents the exact search commands and results used to verify that no released record references an "Apple M3" example a reviewer recalled from an earlier manuscript draft.
 
@@ -217,12 +228,17 @@ llm_majority_vote_ollama/
 ├── scripts/
 │   ├── eval_dataset.py             # main experiment runner
 │   ├── compute_results.py          # legacy ad-hoc aggregation (superseded by regenerate_all.py)
-│   ├── regenerate_all.py           # canonical script: regenerates Tables 1, 2, 5, 7 from raw votes
-│   ├── regenerate_significance.py  # McNemar tests + Bonferroni threshold (Section 4.3/7.5)
-│   ├── compute_repeat_metrics.py   # Table 8/9 reruns: accuracy, coverage, ECE, Macro-F1, MCC
+│   ├── regenerate_all.py           # original pre-fix: regenerates Tables 1, 2, 5, 7 from raw votes
+│   ├── regenerate_significance.py  # original pre-fix: McNemar tests + Bonferroni (10 tests)
+│   ├── compute_repeat_metrics.py   # current: Table 8 (accuracy) and Table 9 in full (36 rows)
+│   ├── regenerate_3rep.py          # current: Tables 1, 2, 5, 7 from the 3-repeat post-fix data
+│   ├── regenerate_significance_3rep.py  # current: McNemar/Bonferroni re-derived per repeat (36 tests)
+│   ├── regenerate_table4_cvhb.py   # current: Table 4 (5-fold CV histogram-binning, seed=42)
+│   ├── regenerate_figure6.py       # current: Figure 6 (confusion matrix) from post-fix data
+│   ├── make_figures_3rep.py        # current: Figures 2, 3, 4, 5 from the 3-repeat post-fix data
 │   ├── run_all.sh / run_parallel.py           # batch runners (sequential / parallel)
 │   ├── rerun_reviewer_r1_concurrent.sh        # reviewer-requested repeat runs
-│   └── make_plots.py               # generate figures from CSVs
+│   └── make_plots.py               # generate figures from CSVs (original pre-fix collection)
 ├── src/llm_vote/
 │   ├── voter.py             # MMV logic: majority vote + abstention
 │   ├── metrics.py           # accuracy, macro-F1, MCC, ECE (15-bin)
