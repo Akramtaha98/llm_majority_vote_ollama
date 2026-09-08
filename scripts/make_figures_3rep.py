@@ -109,7 +109,7 @@ for ax, (ds, model, title) in zip(axes, rel_panels):
             continue
         acc_frac = [a / 100.0 for a in mean_acc]
         ax.plot(mean_conf, acc_frac, marker="o", color=kcolors[k], linewidth=1.8, markersize=7, label=f"k={k}")
-    ax.set_title(title, fontsize=12)
+    ax.set_title(title, fontsize=13, fontweight="bold")
     ax.set_xlabel("Confidence")
     ax.set_ylabel("Accuracy")
     ax.set_xlim(0, 1)

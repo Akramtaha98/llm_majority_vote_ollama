@@ -56,12 +56,21 @@ def _load_goemo_multi_map(vote_dir):
     fallback for the single-label datasets (AG News, DBpedia), where gold_multi
     equals gold anyway, but it is wrong for GoEmotions: it under-credits any MMV
     prediction that matches a secondary gold label but not the first-listed one,
-    for 2 of every 3 repeats. This was caught by an independent recomputation
-    that found regenerate_3rep.py's own GoEmotions k=3 ECE (43.56%, mean of 3
-    reps) did not match compute_repeat_metrics.py's independently-verified value
-    for the same quantity, even though both scripts are supposed to compute
-    identical Table 1 statistics; both actually agree at 43.56% once this map is
-    applied, matching the manuscript's Section 7.4 prose exactly. Recovers the
+    for 2 of every 3 repeats. In this dataset the fallback happens to be
+    numerically a no-op (no covered GoEmotions prediction actually depends on
+    a secondary gold label), so injecting this map does not by itself change
+    any reported statistic; it is fixed here purely to remove the latent
+    schema inconsistency. This gold_multi gap was originally suspected as the
+    cause of a separate discrepancy -- regenerate_3rep.py's own GoEmotions k=3
+    ECE (43.56%, mean of 3 reps) not matching compute_repeat_metrics.py's
+    independently-verified value (43.55%) for the same quantity -- but the
+    real cause turned out to be unrelated: process_condition() in
+    regenerate_all.py was rounding confidence_mmv/confidence_sc to 4 decimal
+    places before computing ECE, while compute_repeat_metrics.py used the
+    unrounded ratio. That rounding has since been removed from
+    regenerate_all.py (see its process_condition docstring/comment), and both
+    scripts now agree at 43.55%, which is the value the manuscript's Table 1
+    and Section 7.4 prose report. Recovers the
     true multi-label gold set for every GoEmotions sample id from the original
     per-sample vote-count records (which do carry a correct gold_multi column
     for every row, all three k), exactly as compute_repeat_metrics.py already

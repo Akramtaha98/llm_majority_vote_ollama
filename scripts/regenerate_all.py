@@ -89,6 +89,7 @@ def process_condition(path, k, fixed_labels):
             mmv_pred = None
             sc_pred = None
             parser_failure = True
+            top_votes = 0
         else:
             parser_failure = False
             max_v = max(votes.values())
@@ -111,10 +112,23 @@ def process_condition(path, k, fixed_labels):
             mmv_correct=int(is_correct(mmv_pred)),
             sc_correct=int(is_correct(sc_pred)),
             parser_failure=int(parser_failure),
-            top_votes=r["top_votes"], K=k,
+            # Recomputed from the votes dict directly, not copied from the raw CSV's own
+            # top_votes column: that column was found post-submission to be wrong whenever
+            # the top vote count is an exact tie (e.g. votes = {World:1, Business:1,
+            # Sci/Tech:1} at k=3 records top_votes=0 in the raw file instead of the correct
+            # tied value of 1). This did not affect mmv_pred/coverage (which already used a
+            # freshly computed max_v for the abstention decision), but it did corrupt
+            # Figure 5's vote-agreement histogram, which read this column directly.
+            top_votes=top_votes, K=k,
             n_parsed=total_valid,
-            confidence_mmv=round(votes[mmv_pred] / k, 4) if mmv_pred else 0.0,
-            confidence_sc=round(votes[sc_pred] / k, 4) if (sc_pred and not parser_failure) else 0.0,
+            # Full float precision, not rounded: rounding this to 4 decimals (e.g. 2/3 ->
+            # 0.6667) was found post-submission to introduce a small but real divergence
+            # from compute_repeat_metrics.py's independently-computed ECE (which uses the
+            # unrounded ratio), enough to flip the second-decimal-place display of one
+            # Table 1 cell (GoEmotions k=3 ECE: 43.55% unrounded vs. 43.56% with the
+            # premature rounding). Both scripts now agree to full precision.
+            confidence_mmv=(votes[mmv_pred] / k) if mmv_pred else 0.0,
+            confidence_sc=(votes[sc_pred] / k) if (sc_pred and not parser_failure) else 0.0,
         ))
     return pd.DataFrame(rows)
 
