@@ -7,7 +7,7 @@ import pandas as pd
 from llm_vote.prompting import EN_SYSTEM, AR_SYSTEM, build_prompt
 from llm_vote.voter import majority_vote_single
 from llm_vote.metrics import accuracy, macro_f1, mcc, expected_calibration_error
-from llm_vote.datasets import load_ag_news, load_dbpedia, load_goemotions, load_labr_csv
+from llm_vote.datasets import load_ag_news, load_dbpedia, load_dbpedia_stratified, load_goemotions, load_labr_csv
 from llm_vote.utils import votes_to_confidence
 
 # Providers
@@ -47,6 +47,13 @@ def main():
                          "all AG News LLaMA-3.2:3B conditions in this paper's released "
                          "records were originally collected this way, not with the "
                          "shuffle; pass this flag to reproduce those specific conditions.")
+    p.add_argument("--stratified", action="store_true",
+                    help="For --dataset dbpedia only: use load_dbpedia_stratified, "
+                         "which draws an explicitly class-balanced sample across all "
+                         "14 DBpedia classes instead of relying on a global shuffle to "
+                         "produce balance by chance (added after a post-hoc audit found "
+                         "the excluded LLaMA-3.2:3B DBpedia condition, Section 7.6, was "
+                         "drawn entirely from a single class). Ignored for other datasets.")
     p.add_argument("--preds", default=None)
     p.add_argument("--save-raw-outputs", action="store_true",
                     help="Also persist the exact raw string returned by the model for "
@@ -69,7 +76,10 @@ def main():
         texts, gold, task, label_names = load_ag_news(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "dbpedia":
-        texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
+        if args.stratified:
+            texts, gold, task, label_names = load_dbpedia_stratified(max_samples=args.max_samples, seed=args.seed)
+        else:
+            texts, gold, task, label_names = load_dbpedia(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)
         sys_prompt = EN_SYSTEM
     elif args.dataset == "goemotions":
         texts, gold_primary, task, label_names, gold_multi = load_goemotions(max_samples=args.max_samples, seed=args.seed, shuffle=do_shuffle)

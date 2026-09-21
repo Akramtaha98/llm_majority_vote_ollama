@@ -69,6 +69,64 @@ def load_dbpedia(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEE
     task = "DBpedia Ontology Classification"
     return texts, labels, task, label_names
 
+
+def load_dbpedia_stratified(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEED):
+    """Stratified variant of load_dbpedia: draws an explicitly balanced sample
+    across all 14 DBpedia classes rather than relying on a global shuffle to
+    produce balance by chance. Added after a post-hoc audit found the original
+    LLaMA-3.2:3B DBpedia collection was drawn entirely from a single class
+    (Section 7.6); this loader makes that failure mode structurally impossible.
+    Deterministic for a fixed seed. Requires max_samples to be set (no
+    "full dataset" mode, since stratification needs a target size)."""
+    if not max_samples:
+        raise ValueError("load_dbpedia_stratified requires an explicit max_samples")
+    ds = load_dataset("fancyzhx/dbpedia_14", split="test")
+    label_names = [
+        "Company","EducationalInstitution","Artist","Athlete","OfficeHolder",
+        "MeanOfTransportation","Building","NaturalPlace","Village","Animal",
+        "Plant","Album","Film","WrittenWork"
+    ]
+    n_classes = len(label_names)
+    by_class: dict[int, list] = {i: [] for i in range(n_classes)}
+    for x in ds:
+        by_class[x["label"]].append(f"{x.get('title','')}. {x['content']}".strip())
+
+    rng = random.Random(seed)
+    for i in range(n_classes):
+        rng.shuffle(by_class[i])
+
+    base_n = max_samples // n_classes
+    remainder = max_samples % n_classes
+    # distribute the remainder across a fixed, seeded random permutation of
+    # classes, so which classes get the "+1" is deterministic but not biased
+    # toward class index order.
+    class_order = list(range(n_classes))
+    rng.shuffle(class_order)
+    bonus_classes = set(class_order[:remainder])
+
+    rows = []
+    per_class_counts = {}
+    for i in range(n_classes):
+        n_i = base_n + (1 if i in bonus_classes else 0)
+        per_class_counts[label_names[i]] = n_i
+        if n_i > len(by_class[i]):
+            raise ValueError(
+                f"Requested {n_i} samples for class {label_names[i]!r} but only "
+                f"{len(by_class[i])} are available in the test split."
+            )
+        for text in by_class[i][:n_i]:
+            rows.append((text, label_names[i]))
+
+    # final shuffle so classes are interleaved in the eval order (matters for
+    # any downstream code that assumes no ordering structure), still seeded.
+    rng.shuffle(rows)
+
+    print(f"[load_dbpedia_stratified] per-class sample counts: {per_class_counts}")
+    texts = [r[0] for r in rows]
+    labels = [r[1] for r in rows]
+    task = "DBpedia Ontology Classification"
+    return texts, labels, task, label_names
+
 def load_goemotions(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEED, shuffle: bool = True):
     """The dataset config used to collect this paper's original records
     ("go_emotions", config "raw", split "test") no longer resolves on the current
