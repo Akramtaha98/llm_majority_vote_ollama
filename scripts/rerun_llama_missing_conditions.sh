@@ -8,8 +8,11 @@
 # after load_dbpedia) and scripts/eval_dataset.py (--stratified flag, wired
 # into the dbpedia dispatch branch) already contain this code; nothing to
 # paste in manually. Only remaining prerequisite:
-#   1. Confirm Ollama is running locally with llama3.2:3b-instruct pulled:
-#        ollama pull llama3.2:3b-instruct
+#   1. Confirm Ollama is running locally with llama3.2 pulled (this repo's
+#      README uses the plain "llama3.2" tag, which resolves to the 3B
+#      instruct-tuned model -- "llama3.2:3b-instruct" is NOT a valid tag on
+#      the Ollama registry and will fail to pull):
+#        ollama pull llama3.2
 #
 # WHAT THIS SCRIPT DOES:
 #   - DBpedia: draws ONE stratified 300-sample set (seed=42, ~21-22 per class)
@@ -39,7 +42,20 @@ cd "$(dirname "$0")/.."  # run from repo root
 OUT_DIR="runs/reviewer3_llama_reruns"
 mkdir -p "$OUT_DIR"
 
-MODEL="llama3.2:3b-instruct"
+# Use the repo's own .venv interpreter by explicit path when present -- see
+# the matching comment in temperature_sweep.sh for why this matters.
+if [ -x ".venv/bin/python3" ]; then
+  PYTHON=".venv/bin/python3"
+else
+  PYTHON="python3"
+fi
+# Belt-and-suspenders PYTHONPATH fallback -- see the matching comment in
+# temperature_sweep.sh for why this is here.
+export PYTHONPATH="$(pwd)/src${PYTHONPATH:+:$PYTHONPATH}"
+echo "Using interpreter: $PYTHON ($("$PYTHON" -c 'import sys; print(sys.executable)'))"
+echo "PYTHONPATH=$PYTHONPATH"
+
+MODEL="llama3.2"
 SEED=42
 
 echo "=== DBpedia (stratified, LLaMA-3.2:3B) ==="
@@ -51,7 +67,7 @@ for K in 1 3 5; do
       continue
     fi
     echo "--- DBpedia k=$K rep=$REP ---"
-    python3 scripts/eval_dataset.py \
+    "$PYTHON" scripts/eval_dataset.py \
       --provider ollama --model "$MODEL" \
       --dataset dbpedia --stratified \
       --k "$K" --max-samples 300 --seed "$SEED" \
@@ -70,14 +86,14 @@ for K in 1 3 5; do
       continue
     fi
     echo "--- GoEmotions k=$K rep=$REP ---"
-    python3 scripts/eval_dataset.py \
+    "$PYTHON" scripts/eval_dataset.py \
       --provider ollama --model "$MODEL" \
       --dataset goemotions \
       --k "$K" --max-samples 300 --seed "$SEED" \
       --temperature 0.7 --top-p 0.9 --top-k 40 --repeat-penalty 1.1 --num-ctx 4096 \
       --preds "$OUT"
 
-    N_DISTINCT=$(python3 -c "
+    N_DISTINCT=$("$PYTHON" -c "
 import pandas as pd
 d = pd.read_csv('$OUT')
 gold1 = d['gold'].astype(str).str.split('|').str[0]

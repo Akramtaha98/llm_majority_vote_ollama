@@ -29,6 +29,30 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."  # run from repo root
 
+# Use the repo's own .venv interpreter by explicit path when present, instead
+# of relying on `python3` resolving correctly through PATH/shell-hash state.
+# This avoids a class of bug where `which python3` reports the venv correctly
+# in an interactive shell, but a freshly-spawned script process (or a stale
+# shell command hash) ends up invoking a different `python3` that doesn't
+# have this repo installed (`pip install -e .`), causing a spurious
+# "ModuleNotFoundError: No module named 'llm_vote'".
+if [ -x ".venv/bin/python3" ]; then
+  PYTHON=".venv/bin/python3"
+else
+  PYTHON="python3"
+fi
+# Belt-and-suspenders: also put src/ directly on PYTHONPATH. On some Python
+# builds the editable-install (.pth-based) meta path finder that `pip install
+# -e .` registers behaves differently for `python3 -c "import ..."` than for
+# `python3 some_script.py` (observed: the former succeeds, the latter still
+# raises ModuleNotFoundError for the same interpreter). Setting PYTHONPATH
+# makes llm_vote importable via plain path lookup regardless of whether that
+# finder is active, so this works even if the root cause above is never
+# fully explained.
+export PYTHONPATH="$(pwd)/src${PYTHONPATH:+:$PYTHONPATH}"
+echo "Using interpreter: $PYTHON ($("$PYTHON" -c 'import sys; print(sys.executable)'))"
+echo "PYTHONPATH=$PYTHONPATH"
+
 OUT_DIR="runs/reviewer3_temperature_sweep"
 mkdir -p "$OUT_DIR"
 
@@ -37,13 +61,16 @@ K=5
 MAX_SAMPLES=300
 TEMPS=(0.0 0.3 0.7 1.0)
 
-declare -A MODELS=(
-  ["deepseek"]="deepseek-r1:7b"
-  ["llama3.2"]="llama3.2:3b-instruct"
-)
+# Parallel arrays instead of an associative array: macOS ships bash 3.2
+# (Apple stopped bundling GPLv3 bash), which has no `declare -A` support and
+# fails with a confusing "unbound variable" error if you try. This form works
+# on both bash 3.2 (macOS default `bash`) and bash 4+ (Homebrew bash, Linux).
+MODEL_TAGS=(deepseek llama3.2)
+MODEL_NAMES=(deepseek-r1:7b llama3.2)
 
-for TAG in "${!MODELS[@]}"; do
-  MODEL="${MODELS[$TAG]}"
+for i in "${!MODEL_TAGS[@]}"; do
+  TAG="${MODEL_TAGS[$i]}"
+  MODEL="${MODEL_NAMES[$i]}"
   echo "=== AG News, $MODEL, k=$K, temperature sweep ==="
   for T in "${TEMPS[@]}"; do
     OUT="$OUT_DIR/ag_news_${TAG}_k${K}_temp${T}.csv"
@@ -52,7 +79,7 @@ for TAG in "${!MODELS[@]}"; do
       continue
     fi
     echo "--- temperature=$T ---"
-    python3 scripts/eval_dataset.py \
+    "$PYTHON" scripts/eval_dataset.py \
       --provider ollama --model "$MODEL" \
       --dataset ag_news \
       --k "$K" --max-samples "$MAX_SAMPLES" --seed "$SEED" \
@@ -63,7 +90,7 @@ done
 
 echo
 echo "=== Aggregating results ==="
-python3 - "$OUT_DIR" <<'PYEOF'
+"$PYTHON" - "$OUT_DIR" <<'PYEOF'
 import sys, glob, json, math
 import pandas as pd
 
