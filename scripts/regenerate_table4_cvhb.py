@@ -77,7 +77,7 @@ def pooled_covered(all_reps, ds, model, k):
 
 
 def main():
-    all_reps = r3.load_all_reps("runs/reviewer_r1_reruns")
+    all_reps = r3.load_all_reps("runs/three_repeat")
     rows = []
     for model in ("LLaMA-3.2:3B", "DeepSeek-R1:7B"):
         for k in (1, 3, 5):

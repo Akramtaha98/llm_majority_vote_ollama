@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Recompute coverage, accuracy, ECE, Macro-F1, and MCC per repeat, directly from the
-raw per-sample repeat-run records in runs/reviewer_r1_reruns/, plus the original
+raw per-sample repeat-run records in runs/three_repeat/, plus the original
 per-sample vote-count records (for GoEmotions multi-label gold crediting).
 
 Reproduces Table 8's Rep 1 / Rep 2 / Rep 3 accuracy columns exactly (cross-checked against
@@ -9,8 +9,8 @@ coverage / ECE / Macro-F1 / MCC columns in full.
 
 Usage:
     python3 scripts/compute_repeat_metrics.py \
-        --reruns-dir runs/reviewer_r1_reruns \
-        --vote-dir vote_records/reviewer_data_package/per_sample_vote_count_records
+        --reruns-dir runs/three_repeat \
+        --vote-dir vote_records/data_package/per_sample_vote_count_records
 """
 from __future__ import annotations
 import argparse
@@ -122,8 +122,8 @@ def process_condition(path: str, labels: list[str], gold_multi_map: dict | None)
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--reruns-dir", default="runs/reviewer_r1_reruns")
-    ap.add_argument("--vote-dir", default="vote_records/reviewer_data_package/per_sample_vote_count_records")
+    ap.add_argument("--reruns-dir", default="runs/three_repeat")
+    ap.add_argument("--vote-dir", default="vote_records/data_package/per_sample_vote_count_records")
     ap.add_argument("--csv-out", default=None, help="optional path to write results as CSV")
     args = ap.parse_args()
 

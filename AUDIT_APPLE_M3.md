@@ -1,6 +1,6 @@
-# Audit: "Apple M3" example provenance (Reviewer 1, Round 2)
+# Audit: "Apple M3" example provenance
 
-A reviewer asked us to explain the provenance of an AG News example referencing an
+This audit traces the provenance of an AG News example referencing an
 "Apple M3 announcement" that they recalled from an earlier manuscript draft. This
 document records the exact audit we ran in response, so it is independently
 checkable rather than taken on our word.
@@ -8,7 +8,7 @@ checkable rather than taken on our word.
 ## Command 1 — search every released per-sample CSV (all 3 datasets, both models, all k) for "M3"
 
 ```
-grep -il "m3" vote_records/reviewer_data_package/per_sample_vote_count_records_scored/*.csv
+grep -il "m3" vote_records/data_package/per_sample_vote_count_records_scored/*.csv
 ```
 
 Result: **no files matched** (18 files searched).

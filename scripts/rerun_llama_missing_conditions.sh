@@ -34,12 +34,12 @@
 # ESTIMATED COST: 18 total (dataset x k x repeat) runs x up to 300 calls each
 # (k=5 = 1500 calls per repeat for that k) -- budget real wall-clock time on
 # a single local GPU; this is comparable in scale to the original 3-repeat
-# reviewer_r1_reruns collection already in this repo.
+# three_repeat collection already in this repo.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."  # run from repo root
 
-OUT_DIR="runs/reviewer3_llama_reruns"
+OUT_DIR="runs/llama_recollection"
 mkdir -p "$OUT_DIR"
 
 # Use the repo's own .venv interpreter by explicit path when present -- see

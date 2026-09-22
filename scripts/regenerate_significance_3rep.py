@@ -2,7 +2,7 @@
 Post-fix, 3-repeat re-derivation of the paper's McNemar significance tests
 (Section 4.3 / 7.5), extending regenerate_significance.py (which only
 reproduces the original pre-fix single-run p-values) to the post-fix
-runs/reviewer_r1_reruns/ data.
+runs/three_repeat/ data.
 
 Design: all four dataset-model pairs are now sample-matched/nested across
 k = 1, 3, 5 (AG News DeepSeek-R1:7B's k = 1 baseline was rematched to the
@@ -52,7 +52,7 @@ def mcnemar_pair(d_a, d_b):
     return n, p, bb, cc
 
 def main():
-    all_reps = r3.load_all_reps("runs/reviewer_r1_reruns")
+    all_reps = r3.load_all_reps("runs/three_repeat")
     print(f"{'Comparison':45s} {'rep':4s} {'n':5s} {'p':8s} {'b(a-only)':10s} {'c(b-only)':10s} sig? sig(bonf)?")
     print("=" * 100)
     for ds, model, ka, kb in COMPARISONS:

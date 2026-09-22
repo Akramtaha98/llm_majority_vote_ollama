@@ -5,7 +5,7 @@
 #
 # This does NOT re-run any LLM calls -- it recomputes every reported statistic
 # from the already-released per-sample vote-count records and repeat-run CSVs
-# under vote_records/ and runs/reviewer_r1_reruns/. To regenerate those raw
+# under vote_records/ and runs/three_repeat/. To regenerate those raw
 # per-sample records themselves (i.e. to re-run the model), see the
 # "Reproducing the paper's results" section of the top-level README.
 #
@@ -49,7 +49,7 @@ EOF
 echo
 
 echo "=== [1/6] Table 1, 2, 5, 7 and Figure 7 (regenerate_3rep.py) ==="
-python3 scripts/regenerate_3rep.py --data-dir runs/reviewer_r1_reruns --out-dir "$OUT_DIR"
+python3 scripts/regenerate_3rep.py --data-dir runs/three_repeat --out-dir "$OUT_DIR"
 echo
 
 echo "=== [2/6] Figures 2, 3, 4, 5 (make_figures_3rep.py) ==="
@@ -58,8 +58,8 @@ echo
 
 echo "=== [3/6] Table 8, Table 9 (compute_repeat_metrics.py) ==="
 python3 scripts/compute_repeat_metrics.py \
-  --reruns-dir runs/reviewer_r1_reruns \
-  --vote-dir vote_records/reviewer_data_package/per_sample_vote_count_records \
+  --reruns-dir runs/three_repeat \
+  --vote-dir vote_records/data_package/per_sample_vote_count_records \
   --csv-out "$OUT_DIR/table9_repeat_metrics.csv"
 echo
 

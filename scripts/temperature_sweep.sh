@@ -18,7 +18,7 @@
 # 1 repeat per temperature (not 3) since the point is to characterize the
 # effect of temperature on MMV's aggregate behavior (coverage, abstention
 # rate, ECE, vote diversity), not to re-establish repeat-level variance,
-# which is already characterized at T=0.7 by the existing reviewer_r1_reruns
+# which is already characterized at T=0.7 by the existing three_repeat
 # data. If the results suggest something surprising, re-run with repeats.
 #
 # METRICS REPORTED per (model, temperature): accuracy, macro-F1, MCC,
@@ -53,7 +53,7 @@ export PYTHONPATH="$(pwd)/src${PYTHONPATH:+:$PYTHONPATH}"
 echo "Using interpreter: $PYTHON ($("$PYTHON" -c 'import sys; print(sys.executable)'))"
 echo "PYTHONPATH=$PYTHONPATH"
 
-OUT_DIR="runs/reviewer3_temperature_sweep"
+OUT_DIR="runs/temperature_sweep"
 mkdir -p "$OUT_DIR"
 
 SEED=42

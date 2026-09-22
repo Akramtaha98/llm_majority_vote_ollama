@@ -1,7 +1,7 @@
 """
 3-repeat post-fix companion to regenerate_all.py.
 
-Reads the 36 post-fix per-sample vote-count CSVs in runs/reviewer_r1_reruns/
+Reads the 36 post-fix per-sample vote-count CSVs in runs/three_repeat/
 (12 conditions x 3 independent repeats, collected after the eval_dataset.py
 max-tokens/client-side generation-length bug was fixed), reuses the exact
 same MMV/SC/ECE/Table2/Table7/AURC computation logic as regenerate_all.py
@@ -12,7 +12,7 @@ is rebuilt from the resulting post-fix Table 1 means. Figure 7's curves are
 averaged across repeats at each shared quantized threshold (thresholds are
 always k-quantized: {1/k, ..., k/k}, so identical across repeats for fixed k).
 
-Usage: python3 regenerate_3rep.py --data-dir runs/reviewer_r1_reruns --out-dir <dir>
+Usage: python3 regenerate_3rep.py --data-dir runs/three_repeat --out-dir <dir>
 """
 import argparse
 import sys
@@ -31,7 +31,7 @@ import regenerate_all as ra  # reuse process_condition/ece/wilson_ci/macro_f1_fi
 AG_NEWS_LABELS = ra.AG_NEWS_LABELS
 GOEMO_LABELS = ra.GOEMO_LABELS
 
-# (dataset, model, k) -> filename stem prefix used in runs/reviewer_r1_reruns/
+# (dataset, model, k) -> filename stem prefix used in runs/three_repeat/
 REP_CONDITIONS = {
     ("AG News", "DeepSeek-R1:7B", 1): ("ag_news_deepseek_matched", AG_NEWS_LABELS),
     ("AG News", "DeepSeek-R1:7B", 3): ("ag_news_deepseek_matched", AG_NEWS_LABELS),
@@ -121,7 +121,7 @@ def _repair_gold_multi(src_path, tmp_dir, goemo_map=None):
     return out_path
 
 
-def load_all_reps(data_dir, vote_dir="vote_records/reviewer_data_package/per_sample_vote_count_records"):
+def load_all_reps(data_dir, vote_dir="vote_records/data_package/per_sample_vote_count_records"):
     import tempfile
     out = {}
     tmp_dir = tempfile.mkdtemp(prefix="regen3rep_repaired_")
@@ -378,7 +378,7 @@ def build_figure7_3rep(curves, out_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default="runs/reviewer_r1_reruns")
+    ap.add_argument("--data-dir", default="runs/three_repeat")
     ap.add_argument("--out-dir", default=".")
     args = ap.parse_args()
 

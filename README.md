@@ -214,7 +214,7 @@ Inference hyperparameters used in the paper: `temperature=0.7`, `top_p=0.9`, `to
 
 **Table 1 and everything derived from it are now built from a 3-repeat post-fix dataset, not the original single-run data described above.** Between the original data collection and these repeats we fixed a client-side generation-length bug that had been silently truncating DeepSeek-R1:7B's reasoning trace (see [Troubleshooting](#troubleshooting)); the commands above still describe the original, pre-fix single-run collection procedure and remain useful for understanding the codebase's sampling logic, but they are no longer what Table 1 reports.
 
-The 36 raw per-sample repeat-run records (12 conditions x 3 independent repeats, all collected under the fixed client) live in [`runs/reviewer_r1_reruns/`](runs/reviewer_r1_reruns/); see [`runs/README.md`](runs/README.md). The following scripts regenerate the current, post-fix paper directly from these records, with no hand-typed numbers anywhere downstream:
+The 36 raw per-sample repeat-run records (12 conditions x 3 independent repeats, all collected under the fixed client) live in [`runs/three_repeat/`](runs/three_repeat/); see [`runs/README.md`](runs/README.md). The following scripts regenerate the current, post-fix paper directly from these records, with no hand-typed numbers anywhere downstream:
 
 - `python3 scripts/regenerate_3rep.py` - Tables 1, 2, 5, 7 (reuses `regenerate_all.py`'s own MMV/SC/ECE/AURC logic rather than reimplementing it).
 - `python3 scripts/make_figures_3rep.py` - Figures 2, 3, 4, 5.
@@ -223,11 +223,11 @@ The 36 raw per-sample repeat-run records (12 conditions x 3 independent repeats,
 - `python3 scripts/regenerate_figure6.py` - Figure 6 (confusion matrix, pooled across the three repeats).
 - `python3 scripts/regenerate_significance_3rep.py` - the paper's McNemar significance tests and Bonferroni-corrected threshold (Section 4.3, 7.5), re-derived separately per repeat (36 tests: 12 within-condition comparisons x 3 repeats) rather than pooled, since the three repeats are non-independent draws over the same matched samples.
 
-Per-sample vote-count records for the original single-run collection - the exact data behind the pre-fix `regenerate_all.py`/`regenerate_significance.py` scripts below - live in [`vote_records/reviewer_data_package/`](vote_records/reviewer_data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/reviewer_data_package/per_sample_vote_count_records_scored/`](vote_records/reviewer_data_package/per_sample_vote_count_records_scored/).
+Per-sample vote-count records for the original single-run collection - the exact data behind the pre-fix `regenerate_all.py`/`regenerate_significance.py` scripts below - live in [`vote_records/data_package/`](vote_records/data_package/). A pre-scored copy of the same records, with explicit `mmv_pred`, `sc_pred`, `mmv_correct`, `sc_correct`, and `parser_failure` columns, is in [`vote_records/data_package/per_sample_vote_count_records_scored/`](vote_records/data_package/per_sample_vote_count_records_scored/).
 
 `python3 scripts/regenerate_all.py` and `python3 scripts/regenerate_significance.py` remain in the repository and still reproduce the *original, pre-fix* single-run Tables 1/2/5/7 and the original 10-test McNemar/Bonferroni analysis exactly as originally submitted; they are retained for provenance and are reused internally by the 3-rep scripts above, but they no longer describe what the current manuscript reports.
 
-For a worked example of how released data is audited against a specific reviewer question, see [`AUDIT_APPLE_M3.md`](AUDIT_APPLE_M3.md), which documents the exact search commands and results used to verify that no released record references an "Apple M3" example a reviewer recalled from an earlier manuscript draft.
+For a worked example of how released data is audited against a specific citation-tracing question, see [`AUDIT_APPLE_M3.md`](AUDIT_APPLE_M3.md), which documents the exact search commands and results used to verify that no released record references an "Apple M3" example recalled from an earlier manuscript draft.
 
 ---
 
@@ -238,7 +238,7 @@ The paper originally scoped 18 conditions (6 dataset-model pairs x k in {1, 3, 5
 - **DBpedia x LLaMA-3.2** - the retained sample was drawn entirely from a single class (`Company`), making it non-representative.
 - **GoEmotions x LLaMA-3.2** - the retained per-sample record had every one of its 1,000 rows labeled `neutral`, inconsistent with GoEmotions' genuine ~26-28-label distribution.
 
-Both are flagged as open items for re-collection rather than reported with unverifiable numbers. See manuscript Section 7.6 (Limitations) and [`vote_records/reviewer_data_package/README.md`](vote_records/reviewer_data_package/README.md) for the full audit note; the raw (excluded) run files are kept in [`runs/`](runs/) for transparency.
+Both are flagged as open items for re-collection rather than reported with unverifiable numbers. See manuscript Section 7.6 (Limitations) and [`vote_records/data_package/README.md`](vote_records/data_package/README.md) for the full audit note; the raw (excluded) run files are kept in [`runs/`](runs/) for transparency.
 
 ---
 
@@ -258,7 +258,7 @@ llm_majority_vote_ollama/
 │   ├── regenerate_figure6.py       # current: Figure 6 (confusion matrix) from post-fix data
 │   ├── make_figures_3rep.py        # current: Figures 2, 3, 4, 5 from the 3-repeat post-fix data
 │   ├── run_all.sh / run_parallel.py           # batch runners (sequential / parallel)
-│   ├── rerun_reviewer_r1_concurrent.sh        # reviewer-requested repeat runs
+│   ├── rerun_three_repeat_concurrent.sh        # three-repeat reruns (rep2/rep3)
 │   └── make_plots.py               # generate figures from CSVs (original pre-fix collection)
 ├── src/llm_vote/
 │   ├── voter.py             # MMV logic: majority vote + abstention
@@ -272,7 +272,7 @@ llm_majority_vote_ollama/
 ├── runs/                    # experiment outputs (CSV + logs); see runs/README.md
 ├── vote_records/            # per-sample vote-count records for the paper's 12 verified conditions
 ├── archive/                 # quarantined out-of-scope artifacts (LABR pilot data), kept for transparency
-└── AUDIT_APPLE_M3.md        # provenance audit for a reviewer-flagged example (see above)
+└── AUDIT_APPLE_M3.md        # provenance audit for a citation-tracing question (see above)
 ```
 
 ---

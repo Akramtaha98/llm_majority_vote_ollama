@@ -1,6 +1,6 @@
 """
 Single auditable script that regenerates Tables 1, 2, 5, and 7 directly from the
-raw per-sample vote-count CSVs as released in vote_records/reviewer_data_package/,
+raw per-sample vote-count CSVs as released in vote_records/data_package/,
 applying:
   - MMV: strict majority of the ORIGINAL fixed k -> pred, else ABSTAIN
   - SC (self-consistency): plurality vote, ties broken by first-in-fixed-class-order,
@@ -30,7 +30,7 @@ No numbers are hand-typed anywhere downstream of this script; Tables 1, 2, 5, an
 and Figure 7 are derived entirely from the per-sample vote-count records.
 
 Usage: python3 regenerate_all.py [--data-dir DIR] [--out-dir DIR]
-Default --data-dir is vote_records/reviewer_data_package/per_sample_vote_count_records/
+Default --data-dir is vote_records/data_package/per_sample_vote_count_records/
 relative to the repository root. Figure 7 is written to <out-dir>/figure7_risk_coverage.png.
 """
 import argparse
@@ -445,7 +445,7 @@ def build_figure7(curves, out_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default="vote_records/reviewer_data_package/per_sample_vote_count_records")
+    ap.add_argument("--data-dir", default="vote_records/data_package/per_sample_vote_count_records")
     ap.add_argument("--out-dir", default=".")
     args = ap.parse_args()
 

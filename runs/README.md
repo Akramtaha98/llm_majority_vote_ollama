@@ -1,7 +1,7 @@
 # runs/
 
 Per-sample prediction CSVs produced by `scripts/run_all.sh` / `scripts/run_parallel.py`
-and `scripts/rerun_reviewer_r1_concurrent.sh`, referenced throughout the paper and its
+and `scripts/rerun_three_repeat_concurrent.sh`, referenced throughout the paper and its
 revisions.
 
 ## Top-level files (18)
@@ -21,13 +21,13 @@ LLaMA-3.2:3B on DBpedia and LLaMA-3.2:3B on GoEmotions. A post-hoc audit found e
 unreliable for a different reason -- the DBpedia run sampled from a single class only,
 and the GoEmotions run assigned the same gold label to every row. Both files are kept
 here for transparency but are not the source of any reported statistic; see
-`vote_records/reviewer_data_package/README.md` for the full note.
+`vote_records/data_package/README.md` for the full note.
 
-## `reviewer_r1_reruns/`
+## `three_repeat/`
 
 36 files (12 verified conditions x 3 independent repeats), produced by
-`scripts/rerun_reviewer_r1_concurrent.sh` (rep1/rep2) and a third GPU rerun (rep3) in
-response to reviewer feedback. All three repeats were collected under the fixed
+`scripts/rerun_three_repeat_concurrent.sh` (rep1/rep2) and a third GPU rerun (rep3) in
+in three independent repeats. All three repeats were collected under the fixed
 `num_predict` client (see the top-level README's Reproducing section). Used to compute
 Table 1 (Mean(3) +/- SD(3)), Table 2, Table 5, Table 7, and Figures 2-5, 7 via
 `scripts/regenerate_3rep.py` / `scripts/make_figures_3rep.py`, and Table 8
@@ -44,7 +44,7 @@ column is missing. For GoEmotions, which is natively multi-label, falling throug
 under-credit any prediction that matches a secondary gold label but not the first-listed
 one; both scripts instead recover the correct multi-label gold for every GoEmotions
 rep1/rep2 row from the original per-sample vote-count records in
-`vote_records/reviewer_data_package/per_sample_vote_count_records/` (which do carry a
+`vote_records/data_package/per_sample_vote_count_records/` (which do carry a
 correct `gold_multi` for every row, all k), keyed by sample `id`, exactly matching rep3's
 own values where both are available.
 

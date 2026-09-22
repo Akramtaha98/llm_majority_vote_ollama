@@ -3,7 +3,7 @@ scripts/regenerate_significance.py -- Auditable reproduction of the paper's
 statistical-significance testing (Section 4.3 / 7.5) and the GoEmotions
 any-listed-gold-label sensitivity analysis (Section 4.1), directly from the
 released per-sample vote-count CSVs in
-vote_records/reviewer_data_package/per_sample_vote_count_records/.
+vote_records/data_package/per_sample_vote_count_records/.
 
 This extends scripts/regenerate_all.py (which reproduces Tables 1, 2, 5, and 7)
 to also reproduce:
@@ -139,7 +139,7 @@ def run_goemotions_sensitivity(data_dir: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default="vote_records/reviewer_data_package/per_sample_vote_count_records",
+    ap.add_argument("--data-dir", default="vote_records/data_package/per_sample_vote_count_records",
                      help="Directory containing the released per-sample vote-count CSVs")
     args = ap.parse_args()
     data_dir = Path(args.data_dir)

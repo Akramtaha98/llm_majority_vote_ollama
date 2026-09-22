@@ -3,7 +3,7 @@ set -euo pipefail
 REPS="${REPS:-2}"
 SEED=42
 TEMP=0.7
-OUTDIR="runs/reviewer_r1_reruns"
+OUTDIR="runs/three_repeat"
 TIMING_LOG="${OUTDIR}/timing.log"
 mkdir -p "$OUTDIR"
 
@@ -91,5 +91,5 @@ echo "============================================================"
 echo "  All reruns complete. Results in: $OUTDIR"
 echo "  Total wall time this invocation: $(fmt_hms $TOTAL_ELAPSED)"
 echo "  Per-run timing log: $TIMING_LOG"
-echo "  Next: tar czf reviewer_r1_reruns.tar.gz $OUTDIR"
+echo "  Next: tar czf three_repeat.tar.gz $OUTDIR"
 echo "============================================================"

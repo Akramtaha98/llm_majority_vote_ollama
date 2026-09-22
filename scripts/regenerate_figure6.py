@@ -18,7 +18,7 @@ import regenerate_3rep as r3
 
 AG_NEWS_LABELS = ["World", "Sports", "Business", "Sci/Tech"]
 
-all_reps = r3.load_all_reps("runs/reviewer_r1_reruns")
+all_reps = r3.load_all_reps("runs/three_repeat")
 dfs = all_reps[("AG News", "LLaMA-3.2:3B", 5)]
 covered = pd.concat([d[d["mmv_pred"] != "ABSTAIN"] for d in dfs], ignore_index=True)
 n = len(covered)
