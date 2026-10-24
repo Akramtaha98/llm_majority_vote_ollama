@@ -1,0 +1,10 @@
+dataset,model,k,tokens_per_item,rel_token_cost,correct_per_1k_tokens
+ag_news,deepseek,1,213.1,1.0,3.947
+ag_news,deepseek,3,636.8,2.99,1.333
+ag_news,deepseek,5,1059.7,4.97,0.8
+dbpedia,deepseek,1,242.9,1.0,3.99
+dbpedia,deepseek,3,729.0,3.0,1.331
+dbpedia,deepseek,5,1220.3,5.02,0.794
+goemotions,deepseek,1,283.4,1.0,1.307
+goemotions,deepseek,3,853.7,3.01,0.428
+goemotions,deepseek,5,1431.2,5.05,0.248

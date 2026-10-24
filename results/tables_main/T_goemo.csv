@@ -1,0 +1,19 @@
+model,k,protocol,n,cov,acc_cov,acc_all,mmv_ece,sc_auroc
+deepseek,1,any-gold (paper),5427,97.4,30.43,29.64,69.57,0.5
+deepseek,1,primary-gold,5427,97.4,26.7,26.01,73.3,0.5
+deepseek,1,single-annotation items,4590,97.5,28.17,27.47,71.83,0.5
+deepseek,3,any-gold (paper),5427,74.8,37.1,27.74,43.19,0.644
+deepseek,3,primary-gold,5427,74.8,32.53,24.32,47.77,0.634
+deepseek,3,single-annotation items,4590,74.8,34.48,25.79,45.79,0.654
+deepseek,5,any-gold (paper),5427,69.4,39.79,27.62,37.23,0.652
+deepseek,5,primary-gold,5427,69.4,34.84,24.18,42.18,0.644
+deepseek,5,single-annotation items,4590,69.3,36.96,25.61,40.04,0.658
+llama,1,any-gold (paper),5427,98.6,17.47,17.22,82.53,0.5
+llama,1,primary-gold,5427,98.6,15.3,15.08,84.7,0.5
+llama,1,single-annotation items,4590,98.5,15.07,14.84,84.93,0.5
+llama,3,any-gold (paper),5427,89.9,18.45,16.59,66.97,0.602
+llama,3,primary-gold,5427,89.9,16.19,14.56,69.23,0.599
+llama,3,single-annotation items,4590,89.8,15.9,14.28,69.39,0.608
+llama,5,any-gold (paper),5427,86.6,19.14,16.58,64.22,0.617
+llama,5,primary-gold,5427,86.6,16.76,14.53,66.59,0.614
+llama,5,single-annotation items,4590,86.5,16.45,14.23,66.78,0.622

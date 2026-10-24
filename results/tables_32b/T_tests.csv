@@ -1,0 +1,19 @@
+rep,dataset,model,cmp,mode,b,c,p,p_holm
+1,ag_news,deepseek,k=1 vs k=3,abstain_as_error,17,33,0.03284,0.27495
+1,ag_news,deepseek,k=1 vs k=3,covered_both,17,33,0.03284,0.27042
+1,ag_news,deepseek,k=1 vs k=5,abstain_as_error,25,38,0.12992,0.77951
+1,ag_news,deepseek,k=1 vs k=5,covered_both,24,38,0.09795,0.58773
+1,ag_news,deepseek,k=3 vs k=5,abstain_as_error,12,9,0.66362,1.0
+1,ag_news,deepseek,k=3 vs k=5,covered_both,11,8,0.64761,1.0
+1,dbpedia,deepseek,k=1 vs k=3,abstain_as_error,5,8,0.58105,1.0
+1,dbpedia,deepseek,k=1 vs k=3,covered_both,5,8,0.58105,1.0
+1,dbpedia,deepseek,k=1 vs k=5,abstain_as_error,10,9,1.0,1.0
+1,dbpedia,deepseek,k=1 vs k=5,covered_both,10,9,1.0,1.0
+1,dbpedia,deepseek,k=3 vs k=5,abstain_as_error,9,5,0.42395,1.0
+1,dbpedia,deepseek,k=3 vs k=5,covered_both,9,5,0.42395,1.0
+1,goemotions,deepseek,k=1 vs k=3,abstain_as_error,85,74,0.42784,1.0
+1,goemotions,deepseek,k=1 vs k=3,covered_both,49,74,0.03005,0.27042
+1,goemotions,deepseek,k=1 vs k=5,abstain_as_error,112,81,0.03055,0.27495
+1,goemotions,deepseek,k=1 vs k=5,covered_both,57,81,0.04985,0.34894
+1,goemotions,deepseek,k=3 vs k=5,abstain_as_error,51,31,0.03524,0.27495
+1,goemotions,deepseek,k=3 vs k=5,covered_both,24,20,0.65159,1.0

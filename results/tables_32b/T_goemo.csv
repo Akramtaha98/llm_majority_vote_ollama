@@ -1,0 +1,10 @@
+model,k,protocol,n,cov,acc_cov,acc_all,mmv_ece,sc_auroc
+deepseek,1,any-gold (paper),2000,100.0,37.07,37.05,62.93,0.5
+deepseek,1,primary-gold,2000,100.0,33.22,33.2,66.78,0.5
+deepseek,1,single-annotation items,1685,100.0,34.07,34.07,65.93,0.5
+deepseek,3,any-gold (paper),2000,90.6,40.29,36.5,44.3,0.644
+deepseek,3,primary-gold,2000,90.6,36.04,32.65,48.55,0.637
+deepseek,3,single-annotation items,1685,90.9,36.58,33.23,48.25,0.655
+deepseek,5,any-gold (paper),2000,86.4,41.06,35.5,41.35,0.667
+deepseek,5,primary-gold,2000,86.4,36.61,31.65,45.81,0.655
+deepseek,5,single-annotation items,1685,86.5,37.31,32.28,45.23,0.673
