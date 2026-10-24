@@ -1,0 +1,10 @@
+dataset,rep,frac_calls_truncated,items_any_trunc_pct,abstain_rate_if_trunc,abstain_rate_if_not,fisher_p,mean_tokens,p95_tokens
+ag_news,1,0.03,0.13,50.0,0.8,0.0,220.2,347
+ag_news,2,0.03,0.13,60.0,0.7,0.0,219.7,344
+ag_news,3,0.02,0.07,80.0,0.7,0.0,219.5,345
+dbpedia,1,0.03,0.13,0.0,0.5,1.0,271.6,486
+dbpedia,2,0.03,0.13,33.3,0.3,0.0,272.5,487
+dbpedia,3,0.02,0.09,0.0,0.4,1.0,271.2,486
+goemotions,1,0.28,1.36,64.9,29.7,0.0,327.5,656
+goemotions,2,0.17,0.87,66.0,30.4,0.0,322.8,634
+goemotions,3,0.17,0.87,70.2,30.6,0.0,323.7,651

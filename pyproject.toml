@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "llm-vote-ollama"
 version = "0.1.0"
-description = "Free local majority-vote text classification via Ollama"
+description = "Self-consistency vote share as a selective-classification signal for zero-shot LLM text classifiers"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [

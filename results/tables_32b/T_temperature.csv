@@ -1,0 +1,13 @@
+dataset,model,T,n,cov,acc_cov,acc_all,mmv_ece,sc_auroc,vote_entropy_nats
+ag_news,deepseek,0.0,2000,99.5,80.0,79.6,16.3,0.617,0.076
+ag_news,deepseek,0.3,2000,99.2,79.5,78.9,15.1,0.657,0.115
+ag_news,deepseek,0.7,2000,99.9,84.8,84.8,12.2,0.647,0.063
+ag_news,deepseek,1.0,2000,99.2,80.0,79.4,13.8,0.651,0.134
+dbpedia,deepseek,0.0,2000,99.9,93.1,93.0,5.0,0.672,0.036
+dbpedia,deepseek,0.3,2000,99.5,93.7,93.2,2.9,0.776,0.073
+dbpedia,deepseek,0.7,2000,100.0,96.9,96.8,2.1,0.73,0.02
+dbpedia,deepseek,1.0,2000,99.5,94.3,93.8,2.0,0.813,0.087
+goemotions,deepseek,0.0,2000,87.9,34.3,30.2,50.8,0.632,0.366
+goemotions,deepseek,0.3,2000,74.3,39.5,29.4,39.6,0.647,0.61
+goemotions,deepseek,0.7,2000,86.5,41.1,35.5,41.4,0.667,0.48
+goemotions,deepseek,1.0,2000,65.4,39.2,25.6,37.2,0.658,0.731

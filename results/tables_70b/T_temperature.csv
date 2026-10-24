@@ -1,0 +1,4 @@
+dataset,model,T,n,cov,acc_cov,acc_all,mmv_ece,sc_auroc,vote_entropy_nats
+ag_news,large,0.7,2000,100.0,86.7,86.6,13.0,0.512,0.008
+dbpedia,large,0.7,2000,100.0,96.8,96.8,2.9,0.593,0.006
+goemotions,large,0.7,2000,97.3,31.6,30.8,64.1,0.538,0.085

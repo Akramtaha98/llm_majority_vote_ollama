@@ -104,7 +104,7 @@ print(n)
     if [ "$N_DISTINCT" -lt 10 ]; then
       echo "    !!! VALIDATION FAILED: fewer than 10 distinct gold labels."
       echo "    !!! This looks like the same data-retention bug as the original"
-      echo "    !!! exclusion (Section 7.6). Do NOT use this file -- investigate"
+      echo "    !!! exclusion (first-version Section 7.6). Do NOT use this file -- investigate"
       echo "    !!! the eval_dataset.py -> CSV write path before re-running."
       mv "$OUT" "${OUT}.SUSPECT"
     fi

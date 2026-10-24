@@ -42,32 +42,27 @@ def main():
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--no-shuffle", action="store_true",
                     help="Disable the dataset-level shuffle and use an unshuffled, "
-                         "first-N slice instead. A post-submission audit (manuscript "
-                         "Section 7.6) found that AG News DeepSeek-R1:7B at k = 1 and "
-                         "all AG News LLaMA-3.2:3B conditions in this paper's released "
-                         "records were originally collected this way, not with the "
-                         "shuffle; pass this flag to reproduce those specific conditions.")
+                         "first-N slice instead (legacy first-version pipeline only; some "
+                         "early AG News records were collected this way). The paper's "
+                         "unified runs always use the shuffle.")
     p.add_argument("--stratified", action="store_true",
                     help="For --dataset dbpedia only: use load_dbpedia_stratified, "
                          "which draws an explicitly class-balanced sample across all "
                          "14 DBpedia classes instead of relying on a global shuffle to "
-                         "produce balance by chance (added after a post-hoc audit found "
-                         "the excluded LLaMA-3.2:3B DBpedia condition, Section 7.6, was "
-                         "drawn entirely from a single class). Ignored for other datasets.")
+                         "produce balance by chance (legacy first-version pipeline only). "
+                         "Ignored for other datasets.")
     p.add_argument("--preds", default=None)
     p.add_argument("--save-raw-outputs", action="store_true",
                     help="Also persist the exact raw string returned by the model for "
                          "each individual call (not just aggregated vote counts), to a "
                          "companion .raw.jsonl file next to the output CSV. Off by "
-                         "default (added per reviewer request; see AUDIT_APPLE_M3.md).")
+                         "default (see AUDIT_APPLE_M3.md).")
     args = p.parse_args()
 
-    # `--seed` is the dataset-level shuffle seed (Section 4.2): applied once per
-    # dataset, before any model calls, to deterministically shuffle the full test
-    # split prior to slicing. It is unrelated to per-call generation randomness --
-    # no generation seed is ever passed to the Ollama API (see OllamaClient). Not
-    # every condition in this paper's released records was actually collected with
-    # this shuffle applied -- see Section 7.6 and --no-shuffle above.
+    # `--seed` is the dataset-level shuffle seed: applied once per dataset, before any
+    # model calls, to deterministically shuffle the full test split prior to slicing.
+    # It is unrelated to per-call generation randomness (no generation seed is passed
+    # to the Ollama API). Legacy first-version pipeline; the paper uses revision/.
     random.seed(args.seed)
     do_shuffle = not args.no_shuffle
 
