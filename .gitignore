@@ -5,7 +5,11 @@ __pycache__/
 .claude/settings.local.json
 
 # revision outputs
-runs/unified*/
+runs/unified/
+runs/unified_T*/
+runs/unified_big_*/
+runs/runs_rp1.1/
+release/
 logs/
 locks/
 .venv/

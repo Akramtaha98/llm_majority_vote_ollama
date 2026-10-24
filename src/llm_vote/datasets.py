@@ -4,16 +4,12 @@ import random
 from datasets import load_dataset
 import pandas as pd
 
-# Dataset-level sampling seed (Section 4.4): when shuffle=True (the default), used
-# once per dataset, before any model calls, to deterministically shuffle the full
-# test split prior to slicing out max_samples. This is unrelated to per-call
-# generation randomness (no generation seed is passed to the Ollama API -- see
-# ollama_client.py). NOT every condition in this paper's released records was
-# actually collected with shuffle=True -- a post-submission audit (manuscript
-# Section 7.6) found that AG News DeepSeek-R1:7B at k = 1 and all AG News
-# LLaMA-3.2:3B conditions were collected with shuffle=False (an unshuffled,
-# first-N slice), predating this shuffle's introduction into the pipeline. Pass
-# shuffle=False explicitly to reproduce those specific historical conditions.
+# Dataset-level sampling seed. With shuffle=True (the default), the full test split is
+# shuffled once with random.Random(DATASET_SHUFFLE_SEED) and the first max_samples items
+# are used. Every result in the paper (revision/run_unified_vllm.py) uses this default,
+# so both models and all values of k see identical items. The seed is unrelated to
+# per-call generation randomness. shuffle=False (first-N slice) exists only to read the
+# first-version records in archive/; it is not used by the paper.
 DATASET_SHUFFLE_SEED = 42
 
 
@@ -37,15 +33,7 @@ def _slice_unshuffled(items: list, max_samples: int | None) -> list:
 
 
 def load_ag_news(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEED, shuffle: bool = True):
-    """A post-submission audit (manuscript Section 7.6) found that the historical
-    per-sample records released with this paper were NOT all collected with the
-    seed-42 shuffle below applied: AG News DeepSeek-R1:7B at k = 3 and k = 5 were
-    drawn from the shuffled test split, but AG News DeepSeek-R1:7B at k = 1 and all
-    three AG News LLaMA-3.2:3B conditions (k = 1, 3, 5) were drawn from an
-    unshuffled, first-N slice of the same test split. Pass shuffle=False to
-    reproduce the unshuffled conditions; the default (shuffle=True) matches the
-    two AG News DeepSeek-R1:7B (k = 3, k = 5) conditions and is the recommended
-    setting for any new data collection with this codebase going forward."""
+    """AG News test split (7,600 items), shuffled with `seed` by default, first `max_samples` items."""
     ds = load_dataset("fancyzhx/ag_news", split="test")
     label_names = ["World","Sports","Business","Sci/Tech"]
     rows = [(x["text"], label_names[x["label"]]) for x in ds]
@@ -73,9 +61,9 @@ def load_dbpedia(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEE
 def load_dbpedia_stratified(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_SEED):
     """Stratified variant of load_dbpedia: draws an explicitly balanced sample
     across all 14 DBpedia classes rather than relying on a global shuffle to
-    produce balance by chance. Added after a post-hoc audit found the original
-    LLaMA-3.2:3B DBpedia collection was drawn entirely from a single class
-    (Section 7.6); this loader makes that failure mode structurally impossible.
+    produce balance by chance. Used only for the first-version records in archive/
+    (an early LLaMA-3.2:3B DBpedia collection was drawn from a single class); the
+    paper's runs use load_dbpedia with the seed-42 shuffle.
     Deterministic for a fixed seed. Requires max_samples to be set (no
     "full dataset" mode, since stratification needs a target size)."""
     if not max_samples:
@@ -134,11 +122,8 @@ def load_goemotions(max_samples: int | None = None, seed: int = DATASET_SHUFFLE_
     a change made upstream after this study's data collection, not by us. This
     loader instead uses the "simplified" config's "test" split, which retains the
     same fixed 28-category label set (27 emotions + neutral) and genuine
-    multi-label gold annotations. We verified directly (Section 7.6) that this
-    substitute, shuffled with seed=42 and sliced to n=300, reproduces this paper's
-    released GoEmotions per-sample record exactly, row for row -- so despite the
-    upstream config change, the original GoEmotions sample selection remains
-    fully reproducible through this loader."""
+    multi-label gold annotations. The paper's GoEmotions results use the full
+    simplified test split (5,427 items) through this loader."""
     ds = load_dataset("google-research-datasets/go_emotions", "simplified", split="test")
     label_names = ds.features["labels"].feature.names
     gold_multi_all = [[label_names[i] for i in x["labels"]] for x in ds]

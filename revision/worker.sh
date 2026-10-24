@@ -4,7 +4,7 @@
 set -uo pipefail
 GPU=${1:?gpu id}; JOBS=${2:-revision/jobs.txt}; cd "$(dirname "$0")/.."
 source .venv/bin/activate
-export MMV_REPO=$PWD VLLM_LOGGING_LEVEL=WARNING
+export LLM_VOTE_REPO=$PWD VLLM_LOGGING_LEVEL=WARNING
 mkdir -p runs logs locks
 while read -r tag ds n rep opt; do
   [ -z "$tag" ] && continue
@@ -16,9 +16,9 @@ while read -r tag ds n rep opt; do
   esac
   lock=locks/${name}_${opt:-0.7}; mkdir "$lock" 2>/dev/null || continue
   [ -f "$resf" ] && continue
-  case $tag in deepseek) M=deepseek-ai/DeepSeek-R1-Distill-Qwen-7B;; llama) M=meta-llama/Llama-3.2-3B-Instruct;; esac
+  case $tag in deepseek) M=deepseek-ai/DeepSeek-R1-Distill-Qwen-7B;; llama) M=unsloth/Llama-3.2-3B-Instruct;; esac
   echo "[gpu$GPU] $(date +%T) start $name ${opt:-0.7}"
-  CUDA_VISIBLE_DEVICES=$GPU python revision/run_unified_vllm.py --model $M --tag $tag --dataset $ds --n $n --rep $rep $flag --out $out \
+  CUDA_VISIBLE_DEVICES=$GPU python revision/run_unified_vllm.py --model $M --tag $tag --dataset $ds --n $n --rep $rep $flag --rep-penalty ${REP_PENALTY:-1.0} --out $out \
       > logs/${name}_${opt:-0.7}.log 2>&1 \
     && echo "[gpu$GPU] $(date +%T) done  $name" || { echo "[gpu$GPU] FAILED $name (see logs/)"; rmdir "$lock"; }
 done < "$JOBS"

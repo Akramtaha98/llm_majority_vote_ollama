@@ -1,4 +1,4 @@
-"""Unified revision runner (vLLM). One job = one (model, dataset, repeat).
+"""Unified evaluation runner (vLLM). One job = one (model, dataset, repeat).
 
 Protocol (answers R1-C3/C4/C5/C7):
   * SAME items for both models: seed-42 shuffled test split, first N (llm_vote.datasets loaders).
@@ -19,7 +19,7 @@ from __future__ import annotations
 import argparse, json, math, os, re, sys, time
 import numpy as np, pandas as pd
 
-sys.path.insert(0, os.path.join(os.environ.get("MMV_REPO", "."), "src"))
+sys.path.insert(0, os.path.join(os.environ.get("LLM_VOTE_REPO", os.environ.get("MMV_REPO", ".")), "src"))
 from llm_vote.datasets import load_ag_news, load_dbpedia, load_goemotions  # noqa: E402
 from llm_vote.prompting import EN_SYSTEM, build_prompt  # noqa: E402
 from llm_vote.voter import normalize_label  # noqa: E402
@@ -67,6 +67,7 @@ def main():
     ap.add_argument("--k-max", type=int, default=5)
     ap.add_argument("--rep", type=int, default=1)
     ap.add_argument("--temperature", type=float, default=0.7)
+    ap.add_argument("--rep-penalty", type=float, default=1.0, help="repetition penalty. vLLM penalises ALL prompt+output tokens (Ollama: last 64 only), so the label names in the prompt would be penalised; 1.0 (off) is used for every reported result, 1.1 only in the S6 sensitivity check")
     ap.add_argument("--max-tokens", type=int, default=None, help="default 4096 reasoning / 32 otherwise")
     ap.add_argument("--data-seed", type=int, default=42)
     ap.add_argument("--score-direct", action="store_true")
@@ -122,7 +123,7 @@ def main():
 
     # identical content to OllamaClient.classify_once: system + instruction + user prompt as one user turn
     prompts = [chat(EN_SYSTEM + "\n\n" + INSTR + build_prompt(t, labels, task)) for t in texts]
-    sps = [SamplingParams(n=a.k_max, temperature=a.temperature, top_p=0.9, top_k=40, repetition_penalty=1.1,
+    sps = [SamplingParams(n=a.k_max, temperature=max(a.temperature, 0.01), top_p=0.9, top_k=40, repetition_penalty=a.rep_penalty,
                           max_tokens=mt, seed=10_007 * a.rep + i, logprobs=0) for i in range(N)]
     t0 = time.time()
     outs = llm.generate(prompts, sps)

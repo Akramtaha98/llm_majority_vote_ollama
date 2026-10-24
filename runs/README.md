@@ -1,3 +1,5 @@
+> **Legacy (first version of the study).** Manuscript section numbers in this file refer to the first version of the paper (Ollama, Q4_K_M). None of these records is used in the revised paper; see the top-level `README.md` and `revision/`.
+
 # runs/
 
 Per-sample prediction CSVs produced by `scripts/run_all.sh` / `scripts/run_parallel.py`
@@ -16,7 +18,7 @@ One file per `{dataset} x {model} x k` condition, named
 These are the original single-repeat runs behind Tables 1-7 and Figures 2-4, produced
 via `scripts/compute_results.py` and `scripts/make_plots.py`.
 
-**Excluded from the paper's verified results** (manuscript Section 7.6, Limitations):
+**Excluded from the paper's verified results** (first-version manuscript Section 7.6, Limitations):
 LLaMA-3.2:3B on DBpedia and LLaMA-3.2:3B on GoEmotions. A post-hoc audit found each
 unreliable for a different reason -- the DBpedia run sampled from a single class only,
 and the GoEmotions run assigned the same gold label to every row. Both files are kept

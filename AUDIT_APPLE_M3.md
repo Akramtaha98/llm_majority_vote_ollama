@@ -1,3 +1,5 @@
+> **Legacy (first version of the study).** Manuscript section numbers in this file refer to the first version of the paper (Ollama, Q4_K_M). None of these records is used in the revised paper; see the top-level `README.md` and `revision/`.
+
 # Audit: "Apple M3" example provenance
 
 This audit traces the provenance of an AG News example referencing an

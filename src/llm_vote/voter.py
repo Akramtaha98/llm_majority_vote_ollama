@@ -4,7 +4,7 @@ import re
 
 def normalize_label(label: str) -> str:
     """Whitespace-normalize only. Matching against the fixed label set is
-    case-sensitive, per the manuscript's Materials and Methods (Section 4.3):
+    case-sensitive, per the paper's Materials and Methods (Section 4.4):
     a raw model output must match a label's exact casing to be counted as a
     valid vote for that label."""
     return re.sub(r"\s+", " ", label.strip())
@@ -23,7 +23,7 @@ def majority_vote_single(
     Run K stochastic calls to the LLM and return (prediction_or_None, vote_counts),
     or (prediction_or_None, vote_counts, raw_outputs) if collect_raw=True.
 
-    MMV's abstention rule is unconditional and uses the ORIGINAL, fixed K as its
+    The strict-majority abstention rule is unconditional and uses the ORIGINAL, fixed K as its
     denominator (not the number of calls that happened to parse into a valid
     label): a prediction is only returned when one label's vote count is a
     strict majority of K (mode > K/2). `abstain_threshold`, if set above 0.5,
@@ -71,7 +71,7 @@ def majority_vote_single(
 
     # Strict-majority abstention (Equation 1): mode must exceed K/2, using the
     # original fixed K, not sum(vote_counts.values()). This is unconditional --
-    # it is MMV's core definition, not an opt-in behind abstain_threshold.
+    # it is the definition of the rule, not an opt-in behind abstain_threshold.
     if mode <= K / 2.0:
         result = (None, vote_counts)
         return result + (raw_outputs,) if collect_raw else result

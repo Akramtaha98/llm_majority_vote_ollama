@@ -1,12 +1,12 @@
-"""Analysis for the unified revision runs (reads runs/unified/*.csv, writes tables to --out).
+"""Analysis for the unified runs (reads runs/unified/*.csv, writes tables to --out).
 
 Outputs (CSV):
   T_main.csv        per dataset/model/k: coverage, covered acc, all-items acc (abstain=error), ECE, AUROC, AURC, mean +- sd over repeats
-  T_baselines.csv   k=1 logprob (direct label prob; post-reasoning answer prob) vs verbal-free SC/MMV at k=3,5 (ECE/AUROC/AURC + bootstrap CI)
+  T_baselines.csv   k=1 logprob (direct label prob; post-reasoning answer prob) vs self-consistency vote share and the fixed strict-majority rule at k=3,5 (ECE/AUROC/AURC + bootstrap CI)
   T_cost.csv        mean generated tokens per item per k (token-based cost), accuracy per 1k tokens
   T_trunc.csv       DeepSeek truncation rate, truncated-vs-abstained association (Fisher), per dataset
   T_tests.csv       paired McNemar (abstention-as-error and covered-both), Holm-corrected within family, per repeat
-  T_conformal.csv   split-calibrated selective classification with a risk guarantee (R1-C8): coverage/risk vs target alpha
+  T_conformal.csv   split-calibrated selective classification with a risk guarantee : coverage/risk vs target alpha
   T_goemo.csv       GoEmotions: any-gold vs primary-gold vs single-annotation subset
 """
 from __future__ import annotations
@@ -82,7 +82,7 @@ def metrics_k(d, k, primary=False):
     return dict(n=n, cov=100 * len(c) / n, acc_cov=100 * c.ok.mean() if len(c) else np.nan,
                 acc_all=100 * c.ok.sum() / n,                      # abstain/parse-fail = error
                 sc_acc_full=100 * sc.ok.sum() / n,
-                mmv_ece=ece(c.share, c.ok), mmv_auroc=auroc_err(c.share, c.ok), mmv_aurc=aurc(c.share, c.ok),
+                rule_ece=ece(c.share, c.ok), rule_auroc=auroc_err(c.share, c.ok), rule_aurc=aurc(c.share, c.ok),
                 sc_ece=ece(sc.share, sc.ok), sc_auroc=auroc_err(sc.share, sc.ok), sc_aurc=aurc(sc.share, sc.ok))
 
 
@@ -162,7 +162,7 @@ def main():
         for k in (3, 5):
             v = vote_table(d, k); val = v.valid.values
             sigs[f"SC vote share (k={k})"] = (v.share.values, v.ok.values, val)
-            sigs[f"MMV (k={k}, covered)"] = (v.share.values, v.ok.values, v["cov"].values)
+            sigs[f"Fixed rule (k={k}, covered)"] = (v.share.values, v.ok.values, v["cov"].values)
         for name, (c, y, msk) in sigs.items():
             idx_all = np.where(msk)[0]
             f = lambda idx, fn: fn(c[idx_all[idx]], y[idx_all[idx]])
@@ -255,7 +255,7 @@ def main():
                 strict_cov = float((v["cov"]).mean()); strict_risk = float(err[v["cov"].values].mean()) if v["cov"].any() else np.nan
                 rows.append(dict(dataset=ds, model=m, k=k, alpha=alpha, ltt_cov=round(100 * np.mean(cv), 1),
                                  ltt_test_risk=round(100 * np.mean(rk), 2), ltt_viol_rate=round(100 * np.mean(np.array(rk) > alpha), 1),
-                                 mmv_cov=round(100 * strict_cov, 1), mmv_risk=round(100 * strict_risk, 2),
+                                 rule_cov=round(100 * strict_cov, 1), rule_risk=round(100 * strict_risk, 2),
                                  conformal_set_cov=round(100 * np.mean(cc), 1) if cc else np.nan,
                                  conformal_set_size=round(np.mean(ss), 2) if ss else np.nan))
     pd.DataFrame(rows).to_csv(f"{a.out}/T_conformal.csv", index=False)
@@ -273,7 +273,7 @@ def main():
                     vals.append(metrics_k(d, k, prim))
                 mm = pd.DataFrame(vals).mean()
                 rows.append(dict(model=m, k=k, protocol=name, n=int(mm.n), cov=round(mm["cov"], 1), acc_cov=round(mm.acc_cov, 2),
-                                 acc_all=round(mm.acc_all, 2), mmv_ece=round(mm.mmv_ece, 2), sc_auroc=round(mm.sc_auroc, 3)))
+                                 acc_all=round(mm.acc_all, 2), rule_ece=round(mm.rule_ece, 2), sc_auroc=round(mm.sc_auroc, 3)))
     if rows: pd.DataFrame(rows).to_csv(f"{a.out}/T_goemo.csv", index=False)
     # ---- temperature sweep on the SAME first-2000 items (T=0.7 taken from the main run, rep 1)
     rows = []
@@ -286,7 +286,7 @@ def main():
             d = d.iloc[:2000].reset_index(drop=True); mt = metrics_k(d, 5)
             ent = np.mean([ -sum(p*np.log(p) for p in (np.array(list(pd.Series([c for c in cs if c]).value_counts()))/max(1,sum(1 for c in cs if c))) if p>0) for cs in d.calls])
             rows.append(dict(dataset=ds, model=m, T=T, n=len(d), cov=round(mt["cov"], 1), acc_cov=round(mt.acc_cov if False else mt["acc_cov"], 1),
-                             acc_all=round(mt["acc_all"], 1), mmv_ece=round(mt["mmv_ece"], 1), sc_auroc=round(mt["sc_auroc"], 3), vote_entropy_nats=round(ent, 3)))
+                             acc_all=round(mt["acc_all"], 1), rule_ece=round(mt["rule_ece"], 1), sc_auroc=round(mt["sc_auroc"], 3), vote_entropy_nats=round(ent, 3)))
     if rows: pd.DataFrame(rows).sort_values(["dataset", "model", "T"]).to_csv(f"{a.out}/T_temperature.csv", index=False)
     print("tables written to", a.out)
 
